@@ -9,6 +9,8 @@ use App\Http\Controllers\Admin\PengajuanController;
 use App\Http\Controllers\Admin\LaporanController;
 use App\Http\Controllers\Karyawan\KaryawanDashboardController;
 use App\Http\Controllers\Karyawan\PengajuanIzinController;
+use App\Http\Controllers\Admin\ShiftController;
+use App\Http\Controllers\Admin\JadwalController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
@@ -63,8 +65,13 @@ Route::middleware('auth')->group(function () {
         Route::put('/karyawan/{id}', [KaryawanController::class, 'update'])->name('admin.karyawan.update');
         Route::delete('/karyawan/{id}', [KaryawanController::class, 'destroy'])->name('admin.karyawan.destroy');
         
+        // --- PERBAIKAN DI SINI: TAMBAHKAN ROUTE UPDATE ---
         Route::get('/pengajuan', [PengajuanController::class, 'index'])->name('admin.pengajuan.index');
+        Route::patch('/pengajuan/{id}', [PengajuanController::class, 'updateStatus'])->name('admin.pengajuan.update'); 
+        
         Route::get('/laporan', [LaporanController::class, 'index'])->name('admin.laporan.index');
+        Route::resource('shift', ShiftController::class)->names('admin.shift');
+        Route::resource('jadwal', JadwalController::class)->names('admin.jadwal');
     });
     
     // --- GRUP KARYAWAN ---

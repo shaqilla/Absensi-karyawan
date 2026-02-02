@@ -37,6 +37,14 @@
                 <a href="{{ route('admin.laporan.index') }}" class="flex items-center p-3 rounded-xl transition {{ request()->routeIs('admin.laporan.index') ? 'bg-indigo-700 shadow-lg' : 'hover:bg-indigo-800' }}">
                     <i class="fas fa-file-alt w-6"></i> Laporan Kehadiran
                 </a>
+                <a href="{{ route('admin.shift.index') }}" class="flex items-center p-3 rounded-xl transition {{ request()->routeIs('admin.shift.*') ? 'bg-indigo-700' : 'hover:bg-indigo-800' }}">
+                    <i class="fas fa-clock w-6 text-center"></i> 
+                    <span class="ml-3 font-bold">Shift Kerja</span>
+                </a>
+                <a href="{{ route('admin.jadwal.index') }}" class="flex items-center p-3 rounded-xl transition {{ request()->routeIs('admin.jadwal.*') ? 'bg-indigo-700' : 'hover:bg-indigo-800' }}">
+                    <i class="fas fa-calendar-alt w-6 text-center"></i> 
+                    <span class="ml-3 font-bold">Jadwal Karyawan</span>
+                </a>
             </nav>
             <div class="p-4 border-t border-indigo-800">
                 <form method="POST" action="{{ route('logout') }}">

@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('pengajuans', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained('users')->onDelete('cascade'); // Karyawan
-            $table->enum('jenis_pengajuan', ['cuti', 'sakit', 'izin']);
+            $table->enum('jenis_pengajuan', ['cuti', 'sakit', 'izin', 'lembur'])->change();
             $table->date('tanggal_mulai');
             $table->date('tanggal_selesai');
             $table->text('alasan');
