@@ -11,26 +11,37 @@ use Illuminate\Http\Request;
 class JadwalController extends Controller
 {
     public function index() {
+        // Ambil semua jadwal beserta data karyawan dan shift-nya
         $jadwals = JadwalKerja::with(['user', 'shift'])->get();
         return view('admin.jadwal.index', compact('jadwals'));
     }
 
     public function create() {
-        $users = User::where('role', 'karyawan')->get();
+        $karyawans = User::where('role', 'karyawan')->get();
         $shifts = Shift::all();
-        $hari = ['senin', 'selasa', 'rabu', 'kamis', 'jumat', 'sabtu', 'minggu'];
-        return view('admin.jadwal.create', compact('users', 'shifts', 'hari'));
+        $hari = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
+        return view('admin.jadwal.create', compact('karyawans', 'shifts', 'hari'));
     }
 
     public function store(Request $request) {
         $request->validate([
             'user_id' => 'required',
             'shift_id' => 'required',
-            'hari' => 'required',
-            'status' => 'required',
+            'hari' => 'required|array', // Bisa pilih banyak hari sekaligus
         ]);
 
-        JadwalKerja::create($request->all());
-        return redirect()->route('admin.jadwal.index')->with('success', 'Jadwal berhasil disetel');
+        foreach ($request->hari as $h) {
+            JadwalKerja::updateOrCreate(
+                ['user_id' => $request->user_id, 'hari' => $h], // Jika sudah ada, update. Jika belum, buat baru.
+                ['shift_id' => $request->shift_id, 'status' => 'aktif']
+            );
+        }
+
+        return redirect()->route('admin.jadwal.index')->with('success', 'Jadwal kerja berhasil disetel!');
+    }
+
+    public function destroy($id) {
+        JadwalKerja::findOrFail($id)->delete();
+        return back()->with('success', 'Jadwal berhasil dihapus');
     }
 }

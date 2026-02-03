@@ -71,6 +71,7 @@ Route::middleware('auth')->group(function () {
         
         Route::get('/laporan', [LaporanController::class, 'index'])->name('admin.laporan.index');
         Route::resource('shift', ShiftController::class)->names('admin.shift');
+        Route::resource('shift', App\Http\Controllers\Admin\ShiftController::class)->names('admin.shift');
         Route::resource('jadwal', JadwalController::class)->names('admin.jadwal');
     });
     
@@ -79,9 +80,9 @@ Route::middleware('auth')->group(function () {
         Route::get('/dashboard', [KaryawanDashboardController::class, 'index'])->name('karyawan.dashboard');
         Route::get('/scan', function () { return view('karyawan.scan'); })->name('karyawan.scan');
         Route::post('/absen/store', [AbsensiController::class, 'store'])->name('karyawan.absen.store');
-
         Route::get('/izin', [PengajuanIzinController::class, 'create'])->name('karyawan.izin.create');
         Route::post('/izin/store', [PengajuanIzinController::class, 'store'])->name('karyawan.izin.store');
+        Route::get('/jadwal-kerja', [KaryawanDashboardController::class, 'jadwal'])->name('karyawan.jadwal.index');
     });
 });
 

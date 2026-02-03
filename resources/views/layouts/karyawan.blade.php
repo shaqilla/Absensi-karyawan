@@ -25,6 +25,10 @@
                 <a href="{{ route('karyawan.scan') }}" class="flex items-center p-3 rounded-xl transition {{ request()->routeIs('karyawan.scan') ? 'bg-indigo-700 shadow-lg' : 'hover:bg-indigo-800' }}">
                     <i class="fas fa-camera w-6"></i> Scan Absensi
                 </a>
+                <a href="{{ route('karyawan.jadwal.index') }}" class="flex items-center p-3 rounded-xl transition {{ request()->routeIs('karyawan.jadwal.index') ? 'bg-indigo-700 shadow-lg' : 'hover:bg-indigo-800' }}">
+                    <i class="fas fa-calendar-alt w-6 text-center"></i> 
+                    <span class="ml-3 font-bold">Jadwal Kerja Saya</span>
+                </a>
                 <a href="{{ route('karyawan.izin.create') }}" class="flex items-center p-3 rounded-xl transition {{ request()->routeIs('karyawan.izin.*') ? 'bg-indigo-700 shadow-lg' : 'hover:bg-indigo-800' }}">
                     <i class="fas fa-envelope-open-text w-6"></i> Pengajuan Izin
                 </a>
