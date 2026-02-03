@@ -11,21 +11,41 @@ class KaryawanDashboardController extends Controller
 {
     public function index()
     {
-        $userId = Auth::id();
-        $hariIni = now()->toDateString();
+        $userId = auth()->id();
+        $hariIniTanggal = now()->toDateString();
+        
+        // 1. Ambil nama hari ini (Pastikan mapping ini sama dengan yang ada di database)
+        $hariInggris = now()->format('l'); 
+        $daftarHari = [
+            'Monday'    => 'Senin',
+            'Tuesday'   => 'Selasa',
+            'Wednesday' => 'Rabu',
+            'Thursday'  => 'Kamis',
+            'Friday'    => 'Jumat',
+            'Saturday'  => 'Sabtu',
+            'Sunday'    => 'Minggu'
+        ];
+        $hariIni = $daftarHari[$hariInggris];
 
-        $presensiHariIni = Presensi::where('user_id', $userId)
-                                ->where('tanggal', $hariIni)
-                                ->first();
+        // 2. Ambil Jadwal Kerja hari ini
+        $jadwalHariIni = \App\Models\JadwalKerja::with('shift')
+                            ->where('user_id', $userId)
+                            ->where('hari', $hariIni)
+                            ->where('status', 'aktif')
+                            ->first();
 
-        $riwayat = Presensi::where('user_id', $userId)
-                        ->orderBy('tanggal', 'desc')
-                        ->take(7)
-                        ->get();
+        // 3. Ambil data absen yang sudah dilakukan hari ini
+        $presensiHariIni = \App\Models\Presensi::where('user_id', $userId)
+                                    ->where('tanggal', $hariIniTanggal)
+                                    ->first();
 
-        // PERBAIKAN: Jangan pakai 'layouts.karyawan.dashboard'
-        // Cukup 'karyawan.dashboard' sesuai folder resources/views/karyawan/dashboard.blade.php
-        return view('karyawan.dashboard', compact('presensiHariIni', 'riwayat'));
+        // 4. Ambil riwayat 7 hari terakhir
+        $riwayat = \App\Models\Presensi::where('user_id', $userId)
+                            ->orderBy('tanggal', 'desc')
+                            ->take(7)
+                            ->get();
+
+        return view('karyawan.dashboard', compact('presensiHariIni', 'riwayat', 'jadwalHariIni'));
     }
 
     public function jadwal() 
@@ -40,5 +60,12 @@ class KaryawanDashboardController extends Controller
 
         // Mengarah ke resources/views/karyawan/jadwal.blade.php
         return view('karyawan.jadwal', compact('jadwals'));
+    }
+
+    public function profil()
+    {
+        // Mengambil data user yang sedang login beserta detail karyawan dan departemennya
+        $user = \App\Models\User::with(['karyawan.departemen'])->findOrFail(auth()->id());
+        return view('karyawan.profil', compact('user'));
     }
 }

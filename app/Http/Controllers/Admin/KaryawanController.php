@@ -34,6 +34,9 @@ class KaryawanController extends Controller
             'nip' => 'required|unique:karyawans,nip',
             'jabatan' => 'required',
             'departemen_id' => 'required|exists:departemens,id',
+            'alamat' => 'required|string', // Validasi Alamat
+            'alamat' => 'required|string', // Validasi Alamat
+            'jenis_kelamin' => 'required|in:laki-laki,perempuan',
         ]);
 
         DB::beginTransaction();
@@ -75,49 +78,57 @@ class KaryawanController extends Controller
 
     // 4. Memproses Perubahan Data (Update)
     public function update(Request $request, $id)
-    {
-        $karyawan = Karyawan::findOrFail($id);
-        $user = User::findOrFail($karyawan->user_id);
+{
+    $karyawan = Karyawan::findOrFail($id);
+    $user = User::findOrFail($karyawan->user_id);
 
-        $request->validate([
-            'nama' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email,' . $user->id, // Abaikan email milik sendiri
-            'nip' => 'required|unique:karyawans,nip,' . $karyawan->id, // Abaikan NIP milik sendiri
-            'role' => 'required|in:admin,karyawan',
-            'departemen_id' => 'required|exists:departemens,id',
-            'jabatan' => 'required',
+    // VALIDASI (PENTING: Perhatikan penulisan ignore ID-nya)
+    $request->validate([
+        'nama' => 'required|string|max:255',
+        'email' => 'required|email|unique:users,email,' . $user->id,
+        'nip' => 'required|unique:karyawans,nip,' . $karyawan->id,
+        'role' => 'required|in:admin,karyawan',
+        'departemen_id' => 'required|exists:departemens,id',
+        'jabatan' => 'required',
+        'alamat' => 'required|string', // Pastikan alamat divalidasi
+        'jenis_kelamin' => 'required|in:laki-laki,perempuan',
+        
+    ]);
+
+    DB::beginTransaction();
+    try {
+        // 1. Update Data User
+        $user->nama = $request->nama;
+        $user->email = $request->email;
+        $user->role = $request->role; // Mengupdate Role
+        
+        // Update password jika diisi saja
+        if ($request->filled('password')) {
+            $user->password = Hash::make($request->password);
+        }
+        $user->save();
+
+        // 2. Update Data Karyawan
+        $karyawan->update([
+            'nip' => $request->nip,
+            'jabatan' => $request->jabatan,
+            'departemen_id' => $request->departemen_id,
+            'alamat' => $request->alamat,
+            'alamat' => $request->alamat, // Perbarui alamat di sini
+            'jenis_kelamin' => $request->jenis_kelamin,
         ]);
 
-        DB::beginTransaction();
-        try {
-            // Update User
-            $user->update([
-                'nama' => $request->nama,
-                'email' => $request->email,
-                'role' => $request->role,
-            ]);
+        DB::commit();
+        
+        // Redirect ke index dengan pesan sukses
+        return redirect()->route('admin.karyawan.index')->with('success', 'Data Karyawan & Role berhasil diperbarui!');
 
-            // Update Password hanya jika diisi
-            if ($request->filled('password')) {
-                $user->update(['password' => Hash::make($request->password)]);
-            }
-
-            // Update Karyawan
-            $karyawan->update([
-                'nip' => $request->nip,
-                'jabatan' => $request->jabatan,
-                'departemen_id' => $request->departemen_id,
-                'alamat' => $request->alamat,
-                'jenis_kelamin' => $request->jenis_kelamin,
-            ]);
-
-            DB::commit();
-            return redirect()->route('admin.karyawan.index')->with('success', 'Data berhasil diperbarui!');
-        } catch (\Exception $e) {
-            DB::rollback();
-            return back()->with('error', 'Gagal update data: ' . $e->getMessage());
-        }
+    } catch (\Exception $e) {
+        DB::rollback();
+        // Kembali ke halaman sebelumnya dengan pesan error asli dari sistem
+        return back()->withErrors(['system_error' => 'Terjadi kesalahan: ' . $e->getMessage()])->withInput();
     }
+}
 
     // 5. Menghapus Karyawan & Akun User
     public function destroy($id)

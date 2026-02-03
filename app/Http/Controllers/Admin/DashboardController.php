@@ -35,4 +35,11 @@ class DashboardController extends Controller
             'presensiTerbaru'
         ));
     }
+
+    public function profil()
+    {
+        // Admin biasanya tetap ada di tabel User & Karyawan
+        $user = \App\Models\User::with(['karyawan.departemen'])->findOrFail(auth()->id());
+        return view('admin.profil', compact('user'));
+    }
 }

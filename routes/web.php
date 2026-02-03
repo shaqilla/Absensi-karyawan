@@ -73,6 +73,9 @@ Route::middleware('auth')->group(function () {
         Route::resource('shift', ShiftController::class)->names('admin.shift');
         Route::resource('shift', App\Http\Controllers\Admin\ShiftController::class)->names('admin.shift');
         Route::resource('jadwal', JadwalController::class)->names('admin.jadwal');
+
+        // PROFIL
+        Route::get('/profil', [DashboardController::class, 'profil'])->name('admin.profil');
     });
     
     // --- GRUP KARYAWAN ---
@@ -83,6 +86,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/izin', [PengajuanIzinController::class, 'create'])->name('karyawan.izin.create');
         Route::post('/izin/store', [PengajuanIzinController::class, 'store'])->name('karyawan.izin.store');
         Route::get('/jadwal-kerja', [KaryawanDashboardController::class, 'jadwal'])->name('karyawan.jadwal.index');
+        Route::get('/profil', [KaryawanDashboardController::class, 'profil'])->name('karyawan.profil');
     });
 });
 

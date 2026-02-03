@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Karyawan - Dashboard Absensi</title>
+    <title>Zenclock</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -18,7 +18,7 @@
         <!-- SIDEBAR (KIRI) - PERSIS ADMIN -->
         <aside class="w-64 bg-indigo-900 text-white flex-shrink-0 flex flex-col shadow-2xl">
             <div class="p-6 text-2xl font-bold border-b border-indigo-800">
-                Absensi QR
+                ZenClock
             </div>
             <nav class="flex-1 p-4 space-y-2 overflow-y-auto">
                 <a href="{{ route('karyawan.dashboard') }}" class="flex items-center p-3 rounded-xl transition {{ request()->routeIs('karyawan.dashboard') ? 'bg-indigo-700 shadow-lg' : 'hover:bg-indigo-800' }}">

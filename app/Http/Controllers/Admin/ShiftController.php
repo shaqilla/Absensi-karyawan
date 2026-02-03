@@ -35,7 +35,14 @@ class ShiftController extends Controller
 
     public function destroy($id)
     {
-        Shift::findOrFail($id)->delete();
-        return back()->with('success', 'Shift berhasil dihapus!');
+        $shift = Shift::findOrFail($id);
+
+        // 1. Hapus semua jadwal yang menggunakan shift ini agar tidak bentrok
+        \App\Models\JadwalKerja::where('shift_id', $id)->delete();
+
+        // 2. Baru hapus shift-nya
+        $shift->delete();
+
+        return back()->with('success', 'Shift dan jadwal terkait berhasil dihapus!');
     }
 }
