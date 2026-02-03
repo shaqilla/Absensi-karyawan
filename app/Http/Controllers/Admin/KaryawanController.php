@@ -12,16 +12,28 @@ use Illuminate\Support\Facades\DB;
 
 class KaryawanController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $karyawans = Karyawan::with(['user', 'departemen'])->get();
-        return view('admin.karyawan.index', compact('karyawans'));
-    }
+        // 1. Ambil ID departemen dari request filter
+        $departemenId = $request->departemen_id;
 
-    public function create()
-    {
+        // 2. Ambil semua departemen untuk isi Dropdown filter
         $departemens = Departemen::all();
-        return view('admin.karyawan.create', compact('departemens'));
+
+        // 3. Query data karyawan dengan relasi
+        $query = Karyawan::with(['user', 'departemen']);
+
+        // 4. Jika ada filter yang dipilih, saring datanya
+        if ($departemenId) {
+            $query->where('departemen_id', $departemenId);
+        }
+
+        $karyawans = $query->get();
+
+        // 5. Hitung total hasil filter
+        $totalFiltered = $karyawans->count();
+
+        return view('admin.karyawan.index', compact('karyawans', 'departemens', 'totalFiltered'));
     }
 
     public function store(Request $request)
