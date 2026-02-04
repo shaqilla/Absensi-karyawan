@@ -4,7 +4,6 @@
 <div class="w-full">
     <div class="flex items-center justify-between mb-8">
         <h1 class="text-3xl font-black text-gray-800 uppercase tracking-tighter">Form Pengajuan</h1>
-        <p class="text-gray-500 text-sm">Ajukan Izin, Sakit, atau Lembur di sini.</p>
     </div>
 
     <div class="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
@@ -17,10 +16,10 @@
                     <div>
                         <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Jenis Pengajuan</label>
                         <select name="jenis_pengajuan" class="w-full border-gray-200 rounded-xl p-4 focus:ring-2 focus:ring-indigo-500 border outline-none font-bold text-gray-700" required>
-                            <option value="izin">Izin (Keperluan Pribadi)</option>
-                            <option value="sakit">Sakit (Butuh Istirahat)</option>
+                            <option value="izin">Izin</option>
+                            <option value="sakit">Sakit</option>
                             <option value="cuti">Cuti Tahunan</option>
-                            <option value="lembur" class="text-indigo-600">Lembur (Perintah Atasan)</option> <!-- PILIHAN BARU -->
+                            <option value="lembur" class="text-indigo-600">Lembur</option> 
                         </select>
                     </div>
 

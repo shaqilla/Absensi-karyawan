@@ -4,20 +4,27 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Absensi App</title>
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
         body, html { height: 100%; margin: 0; overflow: hidden; }
         .dropdown-menu { display: none; }
         .dropdown-menu.show { display: block; }
+        /* Scrollbar rapi untuk sidebar */
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #4f46e5; border-radius: 10px; }
     </style>
 </head>
 <body class="bg-gray-100 antialiased font-sans">
 
     <div class="flex h-screen w-screen overflow-hidden">
         
-        <!-- SIDEBAR (Kiri) - Gaya Indigo Gelap -->
+        <!-- SIDEBAR (Kiri) - Indigo Mewah -->
         <aside class="w-72 bg-indigo-950 text-white flex-shrink-0 flex flex-col shadow-2xl z-20">
             <div class="p-8 text-xl font-black border-b border-indigo-900 tracking-widest text-center uppercase">
                 Zen<span class="text-indigo-400">clock</span>
@@ -45,9 +52,10 @@
 
                 <p class="px-4 text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em] mt-6 mb-2">Layanan</p>
 
-                <a href="{{ route('karyawan.izin.create') }}" class="flex items-center p-3 rounded-xl transition {{ request()->routeIs('karyawan.izin.*') ? 'bg-indigo-600 shadow-lg text-white' : 'text-indigo-200 hover:bg-indigo-900 hover:text-white' }}">
+                <!-- Link diarahkan ke Index (Riwayat) sesuai route baru -->
+                <a href="{{ route('karyawan.izin.index') }}" class="flex items-center p-3 rounded-xl transition {{ request()->routeIs('karyawan.izin.*') ? 'bg-indigo-600 shadow-lg text-white' : 'text-indigo-200 hover:bg-indigo-900 hover:text-white' }}">
                     <i class="fas fa-envelope-open-text w-6 text-center"></i> 
-                    <span class="ml-3 font-bold text-sm uppercase">Pengajuan Izin</span>
+                    <span class="ml-3 font-bold text-sm uppercase">Riwayat Izin</span>
                 </a>
             </nav>
         </aside>
@@ -58,7 +66,7 @@
             <!-- TOPBAR (Header) -->
             <header class="bg-white shadow-sm h-20 flex items-center justify-between px-10 z-30 border-b">
                 <div class="text-sm font-medium text-gray-400 uppercase tracking-widest italic">
-                    Employee Portal
+                    Employee
                 </div>
 
                 <!-- PROFILE DROPDOWN (Karyawan) -->
@@ -76,19 +84,17 @@
                     <!-- Menu Dropdown -->
                     <div id="userDropdownMenu" class="dropdown-menu absolute right-0 mt-3 w-56 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-50">
                         <div class="p-4 border-b border-gray-50 bg-gray-50/50">
-                            <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Personal Account</p>
+                            <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Akun Personal</p>
                         </div>
                         
-                        <!-- Link ke Profil/Setting -->
-                        <a href="{{ route('karyawan.profil') }}" class="flex items-center px-5 py-4 text-sm text-gray-700 hover:bg-indigo-50 transition">
+                        <a href="{{ route('karyawan.profil') }}" class="flex items-center px-5 py-4 text-sm text-gray-700 hover:bg-indigo-50 transition border-b border-gray-50">
                             <i class="fas fa-user-cog w-5 text-indigo-500"></i>
                             <span class="ml-3 font-bold text-xs uppercase tracking-widest">Detail Profil</span>
                         </a>
 
-                        <!-- Logout -->
                         <form method="POST" action="{{ route('logout') }}">
                             @csrf
-                            <button type="submit" class="flex items-center w-full px-5 py-4 text-sm text-red-600 hover:bg-red-50 transition text-left border-t border-gray-50">
+                            <button type="submit" class="flex items-center w-full px-5 py-4 text-sm text-red-600 hover:bg-red-50 transition text-left">
                                 <i class="fas fa-power-off w-5"></i>
                                 <span class="ml-3 font-bold text-xs uppercase tracking-widest">Logout</span>
                             </button>
@@ -109,16 +115,18 @@
         const btn = document.getElementById('userDropdownBtn');
         const menu = document.getElementById('userDropdownMenu');
 
-        btn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            menu.classList.toggle('show');
-        });
+        if(btn && menu) {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                menu.classList.toggle('show');
+            });
 
-        window.addEventListener('click', () => {
-            if (menu.classList.contains('show')) {
-                menu.classList.remove('show');
-            }
-        });
+            window.addEventListener('click', () => {
+                if (menu.classList.contains('show')) {
+                    menu.classList.remove('show');
+                }
+            });
+        }
     </script>
 </body>
 </html>

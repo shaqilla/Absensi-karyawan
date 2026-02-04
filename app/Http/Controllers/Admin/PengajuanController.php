@@ -9,10 +9,27 @@ use Illuminate\Support\Facades\Auth;
 
 class PengajuanController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        // Ambil pengajuan yang belum di-acc (pending) di urutan atas
-        $pengajuans = Pengajuan::with('karyawan')->orderBy('status_approval', 'asc')->get();
+        $search = $request->search;
+        $status = $request->status;
+
+        // 'karyawan' merujuk ke fungsi karyawan() di model Pengajuan (User)
+        // 'karyawan.karyawan' merujuk ke detail di model User (NIP, Jabatan, dll)
+        $query = Pengajuan::with(['karyawan.karyawan']);
+
+        if ($search) {
+            $query->whereHas('karyawan', function($q) use ($search) {
+                $q->where('nama', 'like', "%{$search}%");
+            });
+        }
+
+        if ($status) {
+            $query->where('status_approval', $status);
+        }
+
+        $pengajuans = Pengajuan::with(['karyawan.karyawan'])->orderBy('created_at', 'desc')->get();
+
         return view('admin.pengajuan.index', compact('pengajuans'));
     }
 
