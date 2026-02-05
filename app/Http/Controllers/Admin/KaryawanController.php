@@ -12,30 +12,31 @@ use Illuminate\Support\Facades\DB;
 
 class KaryawanController extends Controller
 {
+    // 1. Daftar Karyawan & Filter
     public function index(Request $request)
     {
-        // 1. Ambil ID departemen dari request filter
         $departemenId = $request->departemen_id;
-
-        // 2. Ambil semua departemen untuk isi Dropdown filter
         $departemens = Departemen::all();
-
-        // 3. Query data karyawan dengan relasi
         $query = Karyawan::with(['user', 'departemen']);
 
-        // 4. Jika ada filter yang dipilih, saring datanya
         if ($departemenId) {
             $query->where('departemen_id', $departemenId);
         }
 
         $karyawans = $query->get();
-
-        // 5. Hitung total hasil filter
         $totalFiltered = $karyawans->count();
 
         return view('admin.karyawan.index', compact('karyawans', 'departemens', 'totalFiltered'));
     }
 
+    // 2. Tampilkan Form Tambah (INI YANG TADI HILANG)
+    public function create()
+    {
+        $departemens = Departemen::all();
+        return view('admin.karyawan.create', compact('departemens'));
+    }
+
+    // 3. Proses Simpan User & Karyawan
     public function store(Request $request)
     {
         $request->validate([
@@ -46,8 +47,7 @@ class KaryawanController extends Controller
             'nip' => 'required|unique:karyawans,nip',
             'jabatan' => 'required',
             'departemen_id' => 'required|exists:departemens,id',
-            'alamat' => 'required|string', // Validasi Alamat
-            'alamat' => 'required|string', // Validasi Alamat
+            'alamat' => 'required|string',
             'jenis_kelamin' => 'required|in:laki-laki,perempuan',
         ]);
 
@@ -66,8 +66,8 @@ class KaryawanController extends Controller
                 'jabatan' => $request->jabatan,
                 'departemen_id' => $request->departemen_id,
                 'tanggal_masuk' => now(),
-                'alamat' => $request->alamat ?? '-',
-                'jenis_kelamin' => $request->jenis_kelamin ?? 'laki-laki',
+                'alamat' => $request->alamat,
+                'jenis_kelamin' => $request->jenis_kelamin,
             ]);
 
             DB::commit();
@@ -78,9 +78,7 @@ class KaryawanController extends Controller
         }
     }
 
-    // --- TAMBAHKAN MULAI DARI SINI ---
-
-    // 3. Menampilkan Halaman Edit
+    // 4. Tampilkan Form Edit
     public function edit($id)
     {
         $karyawan = Karyawan::with('user')->findOrFail($id);
@@ -88,61 +86,52 @@ class KaryawanController extends Controller
         return view('admin.karyawan.edit', compact('karyawan', 'departemens'));
     }
 
-    // 4. Memproses Perubahan Data (Update)
+    // 5. Proses Update Data
     public function update(Request $request, $id)
-{
-    $karyawan = Karyawan::findOrFail($id);
-    $user = User::findOrFail($karyawan->user_id);
+    {
+        $karyawan = Karyawan::findOrFail($id);
+        $user = User::findOrFail($karyawan->user_id);
 
-    // VALIDASI (PENTING: Perhatikan penulisan ignore ID-nya)
-    $request->validate([
-        'nama' => 'required|string|max:255',
-        'email' => 'required|email|unique:users,email,' . $user->id,
-        'nip' => 'required|unique:karyawans,nip,' . $karyawan->id,
-        'role' => 'required|in:admin,karyawan',
-        'departemen_id' => 'required|exists:departemens,id',
-        'jabatan' => 'required',
-        'alamat' => 'required|string', // Pastikan alamat divalidasi
-        'jenis_kelamin' => 'required|in:laki-laki,perempuan',
-        
-    ]);
-
-    DB::beginTransaction();
-    try {
-        // 1. Update Data User
-        $user->nama = $request->nama;
-        $user->email = $request->email;
-        $user->role = $request->role; // Mengupdate Role
-        
-        // Update password jika diisi saja
-        if ($request->filled('password')) {
-            $user->password = Hash::make($request->password);
-        }
-        $user->save();
-
-        // 2. Update Data Karyawan
-        $karyawan->update([
-            'nip' => $request->nip,
-            'jabatan' => $request->jabatan,
-            'departemen_id' => $request->departemen_id,
-            'alamat' => $request->alamat,
-            'alamat' => $request->alamat, // Perbarui alamat di sini
-            'jenis_kelamin' => $request->jenis_kelamin,
+        $request->validate([
+            'nama' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email,' . $user->id,
+            'nip' => 'required|unique:karyawans,nip,' . $karyawan->id,
+            'role' => 'required|in:admin,karyawan',
+            'departemen_id' => 'required|exists:departemens,id',
+            'jabatan' => 'required',
+            'alamat' => 'required|string',
+            'jenis_kelamin' => 'required|in:laki-laki,perempuan',
         ]);
 
-        DB::commit();
-        
-        // Redirect ke index dengan pesan sukses
-        return redirect()->route('admin.karyawan.index')->with('success', 'Data Karyawan & Role berhasil diperbarui!');
+        DB::beginTransaction();
+        try {
+            // Update User
+            $user->nama = $request->nama;
+            $user->email = $request->email;
+            $user->role = $request->role;
+            if ($request->filled('password')) {
+                $user->password = Hash::make($request->password);
+            }
+            $user->save();
 
-    } catch (\Exception $e) {
-        DB::rollback();
-        // Kembali ke halaman sebelumnya dengan pesan error asli dari sistem
-        return back()->withErrors(['system_error' => 'Terjadi kesalahan: ' . $e->getMessage()])->withInput();
+            // Update Karyawan
+            $karyawan->update([
+                'nip' => $request->nip,
+                'jabatan' => $request->jabatan,
+                'departemen_id' => $request->departemen_id,
+                'alamat' => $request->alamat,
+                'jenis_kelamin' => $request->jenis_kelamin,
+            ]);
+
+            DB::commit();
+            return redirect()->route('admin.karyawan.index')->with('success', 'Data Karyawan berhasil diperbarui!');
+        } catch (\Exception $e) {
+            DB::rollback();
+            return back()->withInput()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+        }
     }
-}
 
-    // 5. Menghapus Karyawan & Akun User
+    // 6. Hapus Data
     public function destroy($id)
     {
         $karyawan = Karyawan::findOrFail($id);
@@ -151,6 +140,6 @@ class KaryawanController extends Controller
         $karyawan->delete();
         $user->delete();
 
-        return redirect()->route('admin.karyawan.index')->with('success', 'Data karyawan dan akun login berhasil dihapus!');
+        return redirect()->route('admin.karyawan.index')->with('success', 'Data berhasil dihapus!');
     }
 }

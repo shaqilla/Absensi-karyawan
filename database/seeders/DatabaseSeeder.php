@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Models\Departemen;
 use App\Models\Karyawan;
 use App\Models\KategoriAbsen; // Pastikan ini diimport
+use App\Models\LokasiKantor;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
@@ -60,6 +61,14 @@ class DatabaseSeeder extends Seeder
         KategoriAbsen::create([
             'nama_kategori' => 'Hadir',
             'keterangan' => 'Hadir tepat waktu'
+        ]);
+
+        // 6. Lokasi Kantor
+        LokasiKantor::create([
+            'nama_kantor' => 'Kantor Pusat',
+            'latitude' => -6.175392, // GANTI DENGAN KOORDINAT KAMU
+            'longitude' => 106.827153, // GANTI DENGAN KOORDINAT KAMU
+            'radius' => 50 // Kasih 50 meter biar akurat banget
         ]);
     }
 }

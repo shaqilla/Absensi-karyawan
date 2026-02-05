@@ -4,7 +4,7 @@ namespace App\Helpers;
 
 class GeoHelper {
     public static function calculateDistance($lat1, $lon1, $lat2, $lon2) {
-        $earthRadius = 6371000;
+        $earthRadius = 50;
         $latFrom = deg2rad($lat1);
         $lonFrom = deg2rad($lon1);
         $latTo = deg2rad($lat2);

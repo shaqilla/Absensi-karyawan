@@ -85,7 +85,8 @@
                     <td class="p-6 font-bold text-gray-700">{{ date('d F Y', strtotime($r->tanggal)) }}</td>
                     <td class="p-6 font-mono text-gray-500">{{ date('H:i:s', strtotime($r->jam_masuk)) }}</td>
                     <td class="p-6 text-center">
-                        <span class="px-4 py-1 rounded-full text-[10px] font-black uppercase {{ $r->status == 'hadir' ? 'bg-green-100 text-green-600' : 'bg-yellow-100 text-yellow-600' }}">
+                        <span class="px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest 
+                            {{ $r->status == 'hadir' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-rose-50 text-rose-600 border border-rose-100' }}">
                             {{ $r->status }}
                         </span>
                     </td>

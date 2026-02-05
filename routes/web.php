@@ -11,16 +11,12 @@ use App\Http\Controllers\Karyawan\KaryawanDashboardController;
 use App\Http\Controllers\Karyawan\PengajuanIzinController;
 use App\Http\Controllers\Admin\ShiftController;
 use App\Http\Controllers\Admin\JadwalController;
+use App\Http\Controllers\Admin\LokasiKantorController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 
-/*
-|--------------------------------------------------------------------------
-| Web Routes
-|--------------------------------------------------------------------------
-*/
 
 // 1. HALAMAN UTAMA (WELCOME)
 Route::get('/', function () {
@@ -46,7 +42,7 @@ Route::get('/dashboard', function () {
     return Inertia::render('Dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
-// 3. SEMUA RUTE YANG BUTUH LOGIN
+// 3. RUTE YANG BUTUH LOGIN
 Route::middleware('auth')->group(function () {
     
     // Rute Profile Standar Breeze
@@ -54,9 +50,7 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
-    // ============================
-    // --- KHUSUS ROLE ADMIN ---
-    // ============================
+    // ADMIN
     Route::prefix('admin')->group(function () {
         // Dashboard & Profil
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('admin.dashboard');
@@ -79,14 +73,21 @@ Route::middleware('auth')->group(function () {
         Route::get('/generate-new-token', [QrController::class, 'generate'])->name('admin.qr.generate');
         Route::get('/laporan', [LaporanController::class, 'index'])->name('admin.laporan.index');
 
+        // PERBAIKAN: RUTE DISPLAY MODE (KHUSUS TV/MONITOR)
+        // Route::get('/display-qr', function () {
+        //     return view('admin.display_qr');
+        // })->name('admin.qr.display');
+
         // Operasional: Persetujuan Izin
         Route::get('/pengajuan', [PengajuanController::class, 'index'])->name('admin.pengajuan.index');
         Route::patch('/pengajuan/{id}', [PengajuanController::class, 'updateStatus'])->name('admin.pengajuan.update'); 
+
+        // Lokasi Kantor
+        Route::get('/lokasi-kantor', [LokasiKantorController::class, 'index'])->name('admin.lokasi.index');
+        Route::post('/lokasi-kantor', [LokasiKantorController::class, 'update'])->name('admin.lokasi.update');
     });
 
-    // ============================
-    // --- KHUSUS ROLE KARYAWAN ---
-    // ============================
+    //  KARYAWAN
     Route::prefix('karyawan')->group(function () {
         // Dashboard & Profil
         Route::get('/dashboard', [KaryawanDashboardController::class, 'index'])->name('karyawan.dashboard');
