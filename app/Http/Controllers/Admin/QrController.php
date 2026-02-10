@@ -18,11 +18,11 @@ class QrController extends Controller
             // Nonaktifkan token lama
             QrSession::where('is_active', true)->update(['is_active' => false]); 
             
-            // Simpan token baru
+            // Simpan token baru - DURASI DITAMBAH JADI 60 DETIK BIAR STABIL
             QrSession::create([
                 'token' => $token,
                 'created_by' => Auth::id(),
-                'expired_at' => now()->addSeconds(40),
+                'expired_at' => now()->addSeconds(60), 
                 'is_active' => true
             ]);
 

@@ -4,47 +4,76 @@ namespace App\Http\Controllers\Karyawan;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use App\Models\Presensi;    
-use App\Models\QrSession;   
-use App\Models\Pengajuan;   
-use App\Models\LokasiKantor; // TAMBAHKAN INI
-use App\Helpers\GeoHelper;  
+use App\Models\Presensi;
+use App\Models\QrSession;
+use App\Models\Pengajuan;
+use App\Models\LokasiKantor; 
+use App\Models\JadwalKerja; // Pastikan ini diimport
+use App\Helpers\GeoHelper;
 use Illuminate\Support\Facades\Auth;
+use Carbon\Carbon;
 
 class AbsensiController extends Controller
 {
-    public function store(Request $request) 
+    /**
+     * Menampilkan halaman scanner dan mengirim data lokasi kantor
+     */
+    public function scan()
     {
-        $lokasi = \App\Models\LokasiKantor::first();
+        // Mengambil data lokasi kantor untuk deteksi radius di sisi browser (JS)
+        $lokasi = LokasiKantor::first();
+
+        if (!$lokasi) {
+            return redirect()->back()->with('error', 'Data lokasi kantor belum diatur oleh admin.');
+        }
+
+        return view('karyawan.scan', compact('lokasi'));
+    }
+
+    /**
+     * Memproses data absensi dari hasil scan
+     */
+    public function store(Request $request)
+    {
+        $lokasi = LokasiKantor::first();
         $userId = Auth::id();
         $hariIniTanggal = now()->toDateString();
-        $waktuSekarang = now(); // Jam saat ini
+        $waktuSekarang = now(); 
 
         // 1. Mapping Hari untuk cari Jadwal
         $daftarHari = [
-            'Sunday' => 'Minggu', 'Monday' => 'Senin', 'Tuesday' => 'Selasa', 
-            'Wednesday' => 'Rabu', 'Thursday' => 'Kamis', 'Friday' => 'Jumat', 'Saturday' => 'Sabtu'
+            'Sunday' => 'Minggu',
+            'Monday' => 'Senin',
+            'Tuesday' => 'Selasa',
+            'Wednesday' => 'Rabu',
+            'Thursday' => 'Kamis',
+            'Friday' => 'Jumat',
+            'Saturday' => 'Sabtu'
         ];
         $namaHariIni = $daftarHari[now()->format('l')];
 
         // 2. Ambil Jadwal & Shift Karyawan hari ini
-        $jadwal = \App\Models\JadwalKerja::with('shift')
-                    ->where('user_id', $userId)
-                    ->where('hari', $namaHariIni)
-                    ->where('status', 'aktif')
-                    ->first();
+        $jadwal = JadwalKerja::with('shift')
+            ->where('user_id', $userId)
+            ->where('hari', $namaHariIni)
+            ->where('status', 'aktif')
+            ->first();
 
         if (!$jadwal) {
             return response()->json(['success' => false, 'message' => 'Anda tidak memiliki jadwal kerja hari ini!'], 422);
         }
 
-        // 3. Validasi Jarak & Token QR (Sama seperti sebelumnya)
-        $jarak = \App\Helpers\GeoHelper::calculateDistance($request->lat, $request->lng, $lokasi->latitude, $lokasi->longitude);
+        // 3. Validasi Jarak & Token QR
+        $jarak = GeoHelper::calculateDistance($request->lat, $request->lng, $lokasi->latitude, $lokasi->longitude);
         if ($jarak > $lokasi->radius) {
             return response()->json(['success' => false, 'message' => 'Di luar radius kantor!'], 403);
         }
 
-        $qr = \App\Models\QrSession::where('token', $request->token)->where('is_active', true)->where('expired_at', '>', now())->first();
+        $qr = QrSession::where('token', $request->token)
+            ->where('is_active', true)
+            ->where('expired_at', '>', now())
+            ->first();
+
         if (!$qr) {
             return response()->json(['success' => false, 'message' => 'QR Code Kadaluwarsa!'], 403);
         }
@@ -54,15 +83,12 @@ class AbsensiController extends Controller
 
         if (!$presensi) {
             // --- LOGIKA PENENTUAN STATUS (HADIR ATAU TELAT) ---
-            
-            $jamMasukShift = $jadwal->shift->jam_masuk; // Contoh: 08:00:00
-            $toleransi = $jadwal->shift->toleransi_telat; // Contoh: 15 (menit)
+            $jamMasukShift = $jadwal->shift->jam_masuk; 
+            $toleransi = $jadwal->shift->toleransi_telat; 
 
-            // Buat objek waktu untuk membandingkan
-            $jadwalMasuk = \Carbon\Carbon::createFromFormat('H:i:s', $jamMasukShift);
+            $jadwalMasuk = Carbon::createFromFormat('H:i:s', $jamMasukShift);
             $batasWaktu = $jadwalMasuk->copy()->addMinutes($toleransi);
 
-            // Jika waktu sekarang melewati batas toleransi
             if ($waktuSekarang->greaterThan($batasWaktu)) {
                 $status = 'telat';
                 $pesan = 'Berhasil absen, tapi Anda TERLAMBAT!';
@@ -78,14 +104,13 @@ class AbsensiController extends Controller
                 'jam_masuk' => $waktuSekarang,
                 'latitude' => $request->lat,
                 'longitude' => $request->lng,
-                'status' => $status, // 'hadir' atau 'telat'
+                'status' => $status, 
                 'kategori_id' => 1
             ]);
 
             return response()->json(['success' => true, 'message' => $pesan]);
-
         } else {
-            // --- LOGIKA PULANG (Sama seperti sebelumnya) ---
+            // --- LOGIKA PULANG ---
             if ($presensi->jam_keluar != null) {
                 return response()->json(['success' => false, 'message' => 'Anda sudah absen pulang!'], 422);
             }
