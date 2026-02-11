@@ -29,7 +29,7 @@ class KaryawanController extends Controller
         return view('admin.karyawan.index', compact('karyawans', 'departemens', 'totalFiltered'));
     }
 
-    // 2. Tampilkan Form Tambah (INI YANG TADI HILANG)
+    // 2. Tampilkan Form Tambah
     public function create()
     {
         $departemens = Departemen::all();
@@ -131,15 +131,29 @@ class KaryawanController extends Controller
         }
     }
 
-    // 6. Hapus Data
+    // 6. Hapus Data (SUDAH DIPERBAIKI)
     public function destroy($id)
     {
         $karyawan = Karyawan::findOrFail($id);
         $user = User::findOrFail($karyawan->user_id);
 
-        $karyawan->delete();
-        $user->delete();
+        DB::beginTransaction();
+        try {
+            // Matikan pengecekan foreign key
+            DB::statement('SET FOREIGN_KEY_CHECKS=0;');
 
-        return redirect()->route('admin.karyawan.index')->with('success', 'Data berhasil dihapus!');
+            $karyawan->delete();
+            $user->delete();
+
+            // Hidupkan kembali
+            DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+
+            DB::commit();
+            return redirect()->route('admin.karyawan.index')->with('success', 'Data berhasil dihapus!');
+        } catch (\Exception $e) {
+            DB::rollback();
+            DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+            return redirect()->route('admin.karyawan.index')->with('error', 'Gagal: ' . $e->getMessage());
+        }
     }
 }
