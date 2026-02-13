@@ -12,12 +12,18 @@ use Illuminate\Support\Facades\DB;
 
 class KaryawanController extends Controller
 {
-    // 1. Daftar Karyawan & Filter
-    public function index(Request $request)
+    /**
+     * 1. Menampilkan Khusus Karyawan
+     */
+    public function indexKaryawan(Request $request)
     {
         $departemenId = $request->departemen_id;
         $departemens = Departemen::all();
-        $query = Karyawan::with(['user', 'departemen']);
+
+        // Query: Hanya ambil yang rolenya 'karyawan'
+        $query = Karyawan::with(['user', 'departemen'])->whereHas('user', function($q) {
+            $q->where('role', 'karyawan');
+        });
 
         if ($departemenId) {
             $query->where('departemen_id', $departemenId);
@@ -25,18 +31,41 @@ class KaryawanController extends Controller
 
         $karyawans = $query->get();
         $totalFiltered = $karyawans->count();
+        $title = "Data Karyawan"; // Judul dinamis untuk Blade
 
-        return view('admin.karyawan.index', compact('karyawans', 'departemens', 'totalFiltered'));
+        return view('admin.karyawan.index', compact('karyawans', 'departemens', 'totalFiltered', 'title'));
     }
 
-    // 2. Tampilkan Form Tambah
+    /**
+     * 2. Menampilkan Khusus Admin
+     */
+    public function indexAdmin()
+    {
+        $departemens = Departemen::all();
+
+        // Query: Hanya ambil yang rolenya 'admin'
+        $karyawans = Karyawan::with(['user', 'departemen'])->whereHas('user', function($q) {
+            $q->where('role', 'admin');
+        })->get();
+
+        $totalFiltered = $karyawans->count();
+        $title = "Data Administrator"; // Judul dinamis untuk Blade
+
+        return view('admin.karyawan.index', compact('karyawans', 'departemens', 'totalFiltered', 'title'));
+    }
+
+    /**
+     * Tampilan Form Tambah (Tetap satu form untuk semua role)
+     */
     public function create()
     {
         $departemens = Departemen::all();
         return view('admin.karyawan.create', compact('departemens'));
     }
 
-    // 3. Proses Simpan User & Karyawan
+    /**
+     * Proses Simpan User & Karyawan
+     */
     public function store(Request $request)
     {
         $request->validate([
@@ -71,14 +100,17 @@ class KaryawanController extends Controller
             ]);
 
             DB::commit();
-            return redirect()->route('admin.karyawan.index')->with('success', 'User berhasil ditambahkan!');
+            
+            // Redirect sesuai role yang baru dibuat agar admin tidak bingung
+            $route = ($request->role == 'admin') ? 'admin.users.admin' : 'admin.users.karyawan';
+            return redirect()->route($route)->with('success', 'User berhasil ditambahkan!');
+
         } catch (\Exception $e) {
             DB::rollback();
             return back()->withInput()->with('error', 'Gagal menyimpan data: ' . $e->getMessage());
         }
     }
 
-    // 4. Tampilkan Form Edit
     public function edit($id)
     {
         $karyawan = Karyawan::with('user')->findOrFail($id);
@@ -86,7 +118,6 @@ class KaryawanController extends Controller
         return view('admin.karyawan.edit', compact('karyawan', 'departemens'));
     }
 
-    // 5. Proses Update Data
     public function update(Request $request, $id)
     {
         $karyawan = Karyawan::findOrFail($id);
@@ -105,7 +136,6 @@ class KaryawanController extends Controller
 
         DB::beginTransaction();
         try {
-            // Update User
             $user->nama = $request->nama;
             $user->email = $request->email;
             $user->role = $request->role;
@@ -114,7 +144,6 @@ class KaryawanController extends Controller
             }
             $user->save();
 
-            // Update Karyawan
             $karyawan->update([
                 'nip' => $request->nip,
                 'jabatan' => $request->jabatan,
@@ -124,14 +153,16 @@ class KaryawanController extends Controller
             ]);
 
             DB::commit();
-            return redirect()->route('admin.karyawan.index')->with('success', 'Data Karyawan berhasil diperbarui!');
+
+            $route = ($request->role == 'admin') ? 'admin.users.admin' : 'admin.users.karyawan';
+            return redirect()->route($route)->with('success', 'Data berhasil diperbarui!');
+
         } catch (\Exception $e) {
             DB::rollback();
             return back()->withInput()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
         }
     }
 
-    // 6. Hapus Data (SUDAH DIPERBAIKI)
     public function destroy($id)
     {
         $karyawan = Karyawan::findOrFail($id);
@@ -139,21 +170,19 @@ class KaryawanController extends Controller
 
         DB::beginTransaction();
         try {
-            // Matikan pengecekan foreign key
-            DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+            // Hapus data terkait dulu agar tidak error Foreign Key
+            \App\Models\Presensi::where('user_id', $user->id)->delete();
+            \App\Models\JadwalKerja::where('user_id', $user->id)->delete();
+            \App\Models\Pengajuan::where('user_id', $user->id)->delete();
 
             $karyawan->delete();
             $user->delete();
 
-            // Hidupkan kembali
-            DB::statement('SET FOREIGN_KEY_CHECKS=1;');
-
             DB::commit();
-            return redirect()->route('admin.karyawan.index')->with('success', 'Data berhasil dihapus!');
+            return back()->with('success', 'Data berhasil dihapus!');
         } catch (\Exception $e) {
             DB::rollback();
-            DB::statement('SET FOREIGN_KEY_CHECKS=1;');
-            return redirect()->route('admin.karyawan.index')->with('error', 'Gagal: ' . $e->getMessage());
+            return back()->with('error', 'Gagal: ' . $e->getMessage());
         }
     }
 }
