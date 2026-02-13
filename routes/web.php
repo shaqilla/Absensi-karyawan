@@ -12,22 +12,16 @@ use App\Http\Controllers\Karyawan\PengajuanIzinController;
 use App\Http\Controllers\Admin\ShiftController;
 use App\Http\Controllers\Admin\JadwalController;
 use App\Http\Controllers\Admin\LokasiKantorController;
-use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 
 // 1. HALAMAN UTAMA (WELCOME)
 Route::get('/', function () {
-    return Inertia::render('Welcome', [
-        'canLogin' => Route::has('login'),
-        'canRegister' => Route::has('register'),
-        'laravelVersion' => Application::VERSION,
-        'phpVersion' => PHP_VERSION,
-    ]);
+    return redirect('/dashboard');
 });
 
-// 2. LOGIKA PENGALIHAN SETELAH LOGIN
+// 2. LOGIKA PENGALIHAN SETELAH LOGIN (PENTING!)
 Route::get('/dashboard', function () {
     $user = Auth::user();
     if ($user) {
@@ -38,13 +32,13 @@ Route::get('/dashboard', function () {
             return \Inertia\Inertia::location(route('karyawan.dashboard'));
         }
     } 
-    return Inertia::render('Dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
+    return redirect()->route('login');
+})->middleware(['auth'])->name('dashboard');
 
 // 3. SEMUA RUTE YANG BUTUH LOGIN
 Route::middleware('auth')->group(function () {
     
-    // Rute Profile Standar
+    // Rute Profile Standar Breeze
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
@@ -55,8 +49,11 @@ Route::middleware('auth')->group(function () {
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('admin.dashboard');
         Route::get('/profil', [DashboardController::class, 'profil'])->name('admin.profil');
 
-        // Master Data Karyawan
-        Route::get('/karyawan', [KaryawanController::class, 'index'])->name('admin.karyawan.index');
+        // MANAJEMEN USER (DIPISAHKAN KARYAWAN & ADMIN)
+        Route::get('/users/karyawan', [KaryawanController::class, 'indexKaryawan'])->name('admin.karyawan.index');
+        Route::get('/users/admin', [KaryawanController::class, 'indexAdmin'])->name('admin.users.admin');
+        
+        // Operasi CRUD Karyawan (Create, Edit, Delete)
         Route::get('/karyawan/create', [KaryawanController::class, 'create'])->name('admin.karyawan.create');
         Route::post('/karyawan/store', [KaryawanController::class, 'store'])->name('admin.karyawan.store');
         Route::get('/karyawan/{id}/edit', [KaryawanController::class, 'edit'])->name('admin.karyawan.edit');
@@ -71,31 +68,27 @@ Route::middleware('auth')->group(function () {
         Route::get('/lokasi-kantor', [LokasiKantorController::class, 'index'])->name('admin.lokasi.index');
         Route::post('/lokasi-kantor', [LokasiKantorController::class, 'update'])->name('admin.lokasi.update');
 
-        // Operasional & Laporan
+        // Operasional: Absensi & Monitor
+        Route::get('/monitor-qr', function () { return view('admin.monitor_qr'); })->name('admin.monitor.index');
+        Route::get('/generate-new-token', [QrController::class, 'generate'])->name('admin.qr.generate');
         Route::get('/laporan', [LaporanController::class, 'index'])->name('admin.laporan.index');
+
+        // Operasional: Persetujuan Izin
         Route::get('/pengajuan', [PengajuanController::class, 'index'])->name('admin.pengajuan.index');
         Route::patch('/pengajuan/{id}', [PengajuanController::class, 'updateStatus'])->name('admin.pengajuan.update'); 
-
-        // RUTE MONITOR QR (KHUSUS TAB BARU)
-        // Link akses: domain.com/admin/monitor-qr
-        Route::get('/monitor-qr', function () {
-            return view('admin.monitor_qr'); 
-        })->name('admin.qr.view'); // Nama ini dipakai sidebar biar gak error 526
-
-        // RUTE GENERATE TOKEN (Untuk update QR otomatis)
-        Route::get('/generate-new-token', [QrController::class, 'generate'])->name('admin.qr.generate');
-
-        // Rute proses (Jika dibutuhkan)
-        Route::post('/qr-scan-proses', [AbsensiController::class, 'store'])->name('admin.qr.scan.process');
     });
 
     // --- KHUSUS ROLE KARYAWAN ---
     Route::prefix('karyawan')->group(function () {
         Route::get('/dashboard', [KaryawanDashboardController::class, 'index'])->name('karyawan.dashboard');
         Route::get('/profil', [KaryawanDashboardController::class, 'profil'])->name('karyawan.profil');
-        Route::get('/scan', [AbsensiController::class, 'scan'])->name('karyawan.scan');
+
+        // Fitur Absensi
+        Route::get('/scan', function () { return view('karyawan.scan'); })->name('karyawan.scan');
         Route::post('/absen/store', [AbsensiController::class, 'store'])->name('karyawan.absen.store');
         Route::get('/jadwal-kerja', [KaryawanDashboardController::class, 'jadwal'])->name('karyawan.jadwal.index');
+
+        // Fitur Pengajuan Izin
         Route::get('/izin', [PengajuanIzinController::class, 'index'])->name('karyawan.izin.index');
         Route::get('/izin/create', [PengajuanIzinController::class, 'create'])->name('karyawan.izin.create');
         Route::post('/izin/store', [PengajuanIzinController::class, 'store'])->name('karyawan.izin.store');
