@@ -37,7 +37,6 @@
         <aside id="sidebar" class="fixed inset-y-0 left-0 z-50 w-72 bg-indigo-950 text-white flex flex-col shadow-2xl transform -translate-x-full md:translate-x-0 md:relative transition-transform duration-300 ease-in-out">
             <div class="p-8 text-xl font-black border-b border-indigo-900 tracking-widest text-center relative uppercase">
                 Zen<span class="text-indigo-400">clock</span>
-                <!-- Close button Mobile -->
                 <button onclick="toggleSidebar()" class="md:hidden absolute right-4 top-8 text-indigo-400">
                     <i class="fas fa-times text-xl"></i>
                 </button>
@@ -51,29 +50,13 @@
                     <span class="ml-3 font-bold text-sm uppercase">Dashboard</span>
                 </a>
 
-                <p class="px-4 text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em] mt-6 mb-2">Manajemen User</p>
+                <p class="px-4 text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em] mt-6 mb-2">Manajemen Data</p>
 
-                <!-- DROPDOWN KELOLA USER -->
-                <div>
-                    <button onclick="toggleUserDropdown()" class="w-full flex items-center justify-between p-3 rounded-xl transition text-indigo-200 hover:bg-indigo-900 hover:text-white group">
-                        <div class="flex items-center">
-                            <i class="fas fa-users-cog w-6 text-center text-indigo-400"></i> 
-                            <span class="ml-3 font-bold text-sm uppercase">Kelola User</span>
-                        </div>
-                        <i id="userArrow" class="fas fa-chevron-down text-[10px] transition-transform duration-300 {{ request()->routeIs('admin.karyawan.index') || request()->routeIs('admin.users.admin') ? 'rotate-180' : '' }}"></i>
-                    </button>
-                    
-                    <div id="userDropdown" class="{{ request()->routeIs('admin.karyawan.index') || request()->routeIs('admin.users.admin') ? '' : 'hidden' }} pl-10 mt-2 space-y-1">
-                        <a href="{{ route('admin.karyawan.index') }}" class="block p-2 text-[10px] font-black uppercase tracking-widest {{ request()->routeIs('admin.karyawan.index') ? 'text-white bg-indigo-800 rounded-lg' : 'text-indigo-400 hover:text-white' }}">
-                            Data Karyawan
-                        </a>
-                        <a href="{{ route('admin.users.admin') }}" class="block p-2 text-[10px] font-black uppercase tracking-widest {{ request()->routeIs('admin.users.admin') ? 'text-white bg-indigo-800 rounded-lg' : 'text-indigo-400 hover:text-white' }}">
-                            Data Admin
-                        </a>
-                    </div>
-                </div>
-
-                <p class="px-4 text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em] mt-6 mb-2">Master Data</p>
+                <!-- MENU DATA KARYAWAN TUNGGAL (Tanpa Dropdown sesuai permintaan) -->
+                <a href="{{ route('admin.karyawan.index') }}" class="flex items-center p-3 rounded-xl transition {{ request()->routeIs('admin.karyawan.*') ? 'bg-indigo-600 shadow-lg text-white' : 'text-indigo-200 hover:bg-indigo-900 hover:text-white' }}">
+                    <i class="fas fa-users w-6 text-center text-indigo-400"></i> 
+                    <span class="ml-3 font-bold text-sm uppercase">Data Karyawan</span>
+                </a>
 
                 <a href="{{ route('admin.shift.index') }}" class="flex items-center p-3 rounded-xl transition {{ request()->routeIs('admin.shift.*') ? 'bg-indigo-600 shadow-lg text-white' : 'text-indigo-200 hover:bg-indigo-900 hover:text-white' }}">
                     <i class="fas fa-clock w-6 text-center"></i> 
@@ -110,7 +93,7 @@
             <!-- TOPBAR -->
             <header class="bg-white shadow-sm h-20 flex items-center justify-between px-4 md:px-10 z-30 border-b">
                 <div class="flex items-center">
-                    <!-- Hamburger button (Mobile) -->
+                    <!-- Tombol Hamburger (Hanya muncul di HP) -->
                     <button onclick="toggleSidebar()" class="md:hidden p-2 text-indigo-950 focus:outline-none">
                         <i class="fas fa-bars text-2xl"></i>
                     </button>
@@ -132,16 +115,18 @@
                     </button>
 
                     <div id="adminDropdownMenu" class="dropdown-menu absolute right-0 mt-3 w-56 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-50">
-                        <div class="p-4 border-b border-gray-50 bg-gray-50/50 text-[10px] font-black text-gray-400 uppercase">
-                            Admin Account
+                        <div class="p-4 border-b border-gray-50 bg-gray-50/50">
+                            <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Admin Account</p>
                         </div>
+                        
                         <a href="{{ route('admin.profil') }}" class="flex items-center px-5 py-4 text-sm text-gray-700 hover:bg-indigo-50 transition border-b border-gray-50">
                             <i class="fas fa-user-cog w-5 text-indigo-500"></i>
                             <span class="ml-3 font-bold text-xs uppercase">Setting Profil</span>
                         </a>
+
                         <form method="POST" action="{{ route('logout') }}">
                             @csrf
-                            <button type="submit" class="flex items-center w-full px-5 py-4 text-sm text-red-600 hover:bg-red-50 transition text-left font-bold uppercase ">
+                            <button type="submit" class="flex items-center w-full px-5 py-4 text-sm text-red-600 hover:bg-red-50 transition text-left font-bold uppercase text-xs">
                                 <i class="fas fa-power-off w-5"></i>
                                 <span class="ml-1 tracking-widest">Keluar Sistem</span>
                             </button>
@@ -159,7 +144,7 @@
 
     <!-- Scripts -->
     <script>
-        // Logic Sidebar Mobile Toggle
+        // Sidebar Toggle (Responsif)
         const sidebar = document.getElementById('sidebar');
         const overlay = document.getElementById('overlay');
 
@@ -173,15 +158,7 @@
             }
         }
 
-        // Logic Dropdown Kelola User
-        function toggleUserDropdown() {
-            const dropdown = document.getElementById('userDropdown');
-            const arrow = document.getElementById('userArrow');
-            dropdown.classList.toggle('hidden');
-            arrow.classList.toggle('rotate-180');
-        }
-
-        // Logic Profile Dropdown
+        // Profile Dropdown Toggle
         const btn = document.getElementById('adminDropdownBtn');
         const menu = document.getElementById('adminDropdownMenu');
         if(btn) {
