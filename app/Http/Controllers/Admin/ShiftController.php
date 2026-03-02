@@ -21,28 +21,32 @@ class ShiftController extends Controller
 
     public function store(Request $request)
     {
+        // 1. Validasi Ketat
         $request->validate([
             'nama_shift' => 'required|string|max:50',
-            'jam_masuk' => 'required',
-            'jam_keluar' => 'required',
+            'jam_masuk' => 'required', // Format 00:00
+            'jam_keluar' => 'required', // Format 00:00
             'toleransi_telat' => 'required|numeric|min:0',
         ]);
 
-        Shift::create($request->all());
+        // 2. Simpan Data
+        Shift::create([
+            'nama_shift' => $request->nama_shift,
+            'jam_masuk' => $request->jam_masuk,
+            'jam_keluar' => $request->jam_keluar,
+            'toleransi_telat' => $request->toleransi_telat,
+        ]);
 
-        return redirect()->route('admin.shift.index')->with('success', 'Shift baru berhasil ditambahkan!');
+        return redirect()->route('admin.shift.index')->with('success', 'Shift baru berhasil disimpan!');
     }
 
     public function destroy($id)
     {
         $shift = Shift::findOrFail($id);
-
-        // 1. Hapus semua jadwal yang menggunakan shift ini agar tidak bentrok
+        // Hapus jadwal terkait dulu agar tidak error FK
         \App\Models\JadwalKerja::where('shift_id', $id)->delete();
-
-        // 2. Baru hapus shift-nya
         $shift->delete();
 
-        return back()->with('success', 'Shift dan jadwal terkait berhasil dihapus!');
+        return back()->with('success', 'Shift berhasil dihapus!');
     }
 }
