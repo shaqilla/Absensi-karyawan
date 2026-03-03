@@ -7,7 +7,7 @@ use Illuminate\Http\Request;
 use App\Models\Presensi;    
 use App\Models\QrSession;   
 use App\Models\Pengajuan;   
-use App\Models\LokasiKantor; // Import Model Lokasi
+use App\Models\LokasiKantor; 
 use App\Models\JadwalKerja;
 use App\Helpers\GeoHelper;  
 use Illuminate\Support\Facades\Auth;
@@ -18,14 +18,12 @@ class AbsensiController extends Controller
     // TAMPILAN: Membuka Halaman Scan Kamera
     public function index()
     {
-        // Ambil koordinat kantor dari database
         $lokasi = LokasiKantor::first();
 
         if (!$lokasi) {
             return redirect()->route('karyawan.dashboard')->with('error', 'Lokasi kantor belum diatur oleh admin!');
         }
 
-        // Kirim variabel $lokasi ke file scan.blade.php
         return view('karyawan.scan', compact('lokasi'));
     }
 
@@ -63,7 +61,7 @@ class AbsensiController extends Controller
         // 3. Validasi Jarak
         $jarak = GeoHelper::calculateDistance($request->lat, $request->lng, $lokasi->latitude, $lokasi->longitude);
         if ($jarak > $lokasi->radius) {
-            return response()->json(['success' => false, 'message' => 'Gagal! Jarak Anda '.round($jarak).'m (Di luar radius)'], 403);
+            return response()->json(['success' => false, 'message' => 'Gagal! Anda berada di luar radius kantor.'], 403);
         }
 
         // 4. Validasi Token QR
@@ -72,13 +70,16 @@ class AbsensiController extends Controller
             return response()->json(['success' => false, 'message' => 'QR Code tidak valid/kadaluwarsa!'], 403);
         }
 
-        // 5. Eksekusi
+        // 5. Cek Data Absen Hari Ini
         $presensi = Presensi::where('user_id', $userId)->where('tanggal', $hariIniTanggal)->first();
 
         if (!$presensi) {
-            // Logika Masuk
+            // ============================
+            // --- LOGIKA ABSEN MASUK ---
+            // ============================
             $jamMasukShift = Carbon::parse($jadwal->shift->jam_masuk);
             $batasWaktu = $jamMasukShift->addMinutes($jadwal->shift->toleransi_telat);
+            
             $status = ($waktuSekarang->greaterThan($batasWaktu)) ? 'telat' : 'hadir';
 
             Presensi::create([
@@ -91,14 +92,47 @@ class AbsensiController extends Controller
                 'status' => $status,
                 'kategori_id' => 1
             ]);
-            return response()->json(['success' => true, 'message' => 'Berhasil Absen Masuk!']);
+            
+            $msg = ($status == 'telat') ? 'Berhasil! Anda tercatat TERLAMBAT.' : 'Berhasil absen masuk tepat waktu.';
+            return response()->json(['success' => true, 'message' => $msg]);
+
         } else {
-            // Logika Pulang
+            // ============================
+            // --- LOGIKA ABSEN PULANG ---
+            // ============================
+            
+            // A. Cek jika sudah pernah pulang
             if ($presensi->jam_keluar != null) {
-                return response()->json(['success' => false, 'message' => 'Anda sudah absen pulang hari ini.'], 422);
+                return response()->json(['success' => false, 'message' => 'Anda sudah melakukan absen pulang hari ini.'], 422);
             }
-            $presensi->update(['jam_keluar' => $waktuSekarang]);
-            return response()->json(['success' => true, 'message' => 'Berhasil Absen Pulang!']);
+
+            // B. PROTEKSI PULANG AWAL (REVISI ANDA)
+            $jamPulangJadwal = Carbon::parse($jadwal->shift->jam_keluar);
+            
+            // Jika jam sekarang masih kurang dari jam pulang di jadwal
+            if ($waktuSekarang->lessThan($jamPulangJadwal)) {
+                $menitKurang = $waktuSekarang->diffInMinutes($jamPulangJadwal);
+                return response()->json([
+                    'success' => false, 
+                    'message' => "Belum waktunya pulang! Tunggu " . $menitKurang . " menit lagi sesuai jadwal (" . date('H:i', strtotime($jadwal->shift->jam_keluar)) . ")."
+                ], 422);
+            }
+
+            // C. Cek apakah ada pengajuan LEMBUR yang disetujui untuk hari ini
+            $lembur = Pengajuan::where('user_id', $userId)
+                        ->where('jenis_pengajuan', 'lembur')
+                        ->where('status_approval', 'disetujui')
+                        ->whereDate('tanggal_mulai', $hariIniTanggal)
+                        ->first();
+
+            // D. Proses Update Pulang
+            $presensi->update([
+                'jam_keluar' => $waktuSekarang,
+                'keterangan' => $lembur ? 'Pulang (Lembur Disetujui)' : 'Pulang Standar'
+            ]);
+
+            $pesanSukses = $lembur ? 'Berhasil absen pulang! Lembur Anda telah tercatat.' : 'Berhasil absen pulang! Hati-hati di jalan.';
+            return response()->json(['success' => true, 'message' => $pesanSukses]);
         }
     }
 }

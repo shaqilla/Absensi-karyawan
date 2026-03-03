@@ -2,19 +2,10 @@
 
 @section('content')
 <style>
-    /* CSS agar saat print, sidebar dan tombol filter hilang */
     @media print {
-        aside, header, .filter-section, .btn-print {
-            display: none !important;
-        }
-        main {
-            margin: 0 !important;
-            padding: 0 !important;
-        }
-        .bg-white {
-            box-shadow: none !important;
-            border: none !important;
-        }
+        aside, header, .filter-section, .btn-print { display: none !important; }
+        main { margin: 0 !important; padding: 0 !important; }
+        .bg-white { box-shadow: none !important; border: none !important; }
     }
 </style>
 
@@ -22,9 +13,9 @@
     <div class="flex flex-col md:flex-row justify-between md:items-center mb-8 gap-4">
         <div>
             <h1 class="text-3xl font-black text-gray-800 uppercase tracking-tighter">Rekap Laporan Kehadiran</h1>
-            <p class="text-gray-500 text-sm italic">Monitoring kehadiran dan lembur karyawan secara berkala.</p>
+            <p class="text-gray-500 text-sm italic">Monitoring status Hadir, Izin, Sakit, dan Alpha.</p>
         </div>
-        <button type="button" onclick="window.print()" class="btn-print bg-slate-800 text-white px-8 py-3 rounded-2xl font-black hover:bg-black transition flex items-center justify-center shadow-lg shadow-slate-200 text-xs uppercase tracking-widest">
+        <button type="button" onclick="window.print()" class="btn-print bg-slate-800 text-white px-8 py-3 rounded-2xl font-black hover:bg-black transition flex items-center justify-center shadow-lg text-xs uppercase tracking-widest">
             <i class="fas fa-print mr-2"></i> Cetak Ke PDF
         </button>
     </div>
@@ -33,14 +24,14 @@
     <div class="filter-section bg-white p-8 rounded-[2rem] shadow-sm mb-8 border border-gray-100">
         <form action="{{ route('admin.laporan.index') }}" method="GET" class="flex flex-col md:flex-row gap-6 items-end">
             <div class="flex-1 w-full">
-                <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Dari Tanggal</label>
-                <input type="date" name="start_date" value="{{ $start_date }}" class="w-full border-gray-200 rounded-xl p-4 text-sm focus:ring-2 focus:ring-indigo-500 outline-none border font-bold text-gray-700">
+                <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Mulai Tanggal</label>
+                <input type="date" name="start_date" value="{{ $start_date }}" class="w-full border-gray-200 rounded-xl p-4 text-sm outline-none border font-bold text-gray-700">
             </div>
             <div class="flex-1 w-full">
                 <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Sampai Tanggal</label>
-                <input type="date" name="end_date" value="{{ $end_date }}" class="w-full border-gray-200 rounded-xl p-4 text-sm focus:ring-2 focus:ring-indigo-500 outline-none border font-bold text-gray-700">
+                <input type="date" name="end_date" value="{{ $end_date }}" class="w-full border-gray-200 rounded-xl p-4 text-sm outline-none border font-bold text-gray-700">
             </div>
-            <button type="submit" class="bg-indigo-600 text-white px-10 py-4 rounded-2xl font-black hover:bg-indigo-700 transition shadow-lg shadow-indigo-100 uppercase text-xs tracking-widest w-full md:w-auto">
+            <button type="submit" class="bg-indigo-600 text-white px-10 py-4 rounded-2xl font-black hover:bg-indigo-700 transition shadow-lg text-xs uppercase tracking-widest w-full md:w-auto">
                 Filter Laporan
             </button>
         </form>
@@ -65,48 +56,43 @@
                     <tr class="hover:bg-gray-50/50 transition">
                         <td class="p-6">
                             <div class="flex flex-col">
-                                <!-- PAKAI ?? UNTUK CEK APAKAH USER/KARYAWAN ADA -->
-                                <p class="font-black text-gray-800 uppercase tracking-tight">{{ $l->user->nama ?? 'USER DIHAPUS' }}</p>
-                                <p class="text-[10px] text-indigo-500 font-bold uppercase tracking-tighter">
-                                    {{ $l->user->karyawan->departemen->nama_departemen ?? 'TANPA UNIT' }}
-                                </p>
+                                <p class="font-black text-gray-800 uppercase tracking-tight">{{ $l->nama }}</p>
+                                <p class="text-[10px] text-indigo-500 font-bold uppercase tracking-tighter">{{ $l->departemen }}</p>
                             </div>
                         </td>
                         <td class="p-6 text-center font-bold text-gray-600">
                             {{ date('d/m/Y', strtotime($l->tanggal)) }}
                         </td>
-                        <td class="p-6 text-center">
-                            <span class="font-mono font-black text-indigo-600 bg-indigo-50 px-3 py-1 rounded-lg">
-                                {{ $l->jam_masuk ? date('H:i', strtotime($l->jam_masuk)) : '--:--' }}
-                            </span>
+                        <td class="p-6 text-center font-mono font-black {{ $l->status == 'alpha' ? 'text-gray-300' : 'text-indigo-600' }}">
+                            {{ $l->jam_masuk }}
+                        </td>
+                        <td class="p-6 text-center font-mono font-black {{ $l->status == 'alpha' ? 'text-gray-300' : 'text-rose-600' }}">
+                            {{ $l->jam_keluar }}
                         </td>
                         <td class="p-6 text-center">
-                            <span class="font-mono font-black text-rose-600 bg-rose-50 px-3 py-1 rounded-lg">
-                                {{ $l->jam_keluar ? date('H:i', strtotime($l->jam_keluar)) : '--:--' }}
-                            </span>
-                        </td>
-                        <td class="p-6 text-center">
-                            <span class="px-4 py-1.5 rounded-xl font-black text-[9px] uppercase tracking-widest border
-                                {{ $l->status == 'hadir' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-amber-50 text-amber-600 border-amber-100' }}">
+                            @php
+                                $statusColors = [
+                                    'hadir' => 'bg-emerald-50 text-emerald-600 border-emerald-100',
+                                    'telat' => 'bg-amber-50 text-amber-600 border-amber-100',
+                                    'sakit' => 'bg-purple-50 text-purple-600 border-purple-100',
+                                    'izin'  => 'bg-blue-50 text-blue-600 border-blue-100',
+                                    'cuti'  => 'bg-indigo-50 text-indigo-600 border-indigo-100',
+                                    'alpha' => 'bg-rose-50 text-rose-600 border-rose-100 font-black animate-pulse',
+                                ];
+                                $class = $statusColors[$l->status] ?? 'bg-gray-50 text-gray-600';
+                            @endphp
+                            <span class="px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border {{ $class }}">
                                 {{ $l->status }}
                             </span>
                         </td>
                         <td class="p-6">
-                            <div class="flex flex-col gap-1">
-                                <p class="text-xs text-gray-500 italic">{{ $l->keterangan ?? '-' }}</p>
-                                @if($l->keterangan && str_contains(strtolower($l->keterangan), 'lembur'))
-                                    <span class="w-fit bg-orange-100 text-orange-600 text-[8px] font-black px-2 py-0.5 rounded uppercase tracking-tighter border border-orange-200">
-                                        Verified Overtime
-                                    </span>
-                                @endif
-                            </div>
+                            <p class="text-xs text-gray-500 italic">{{ $l->keterangan }}</p>
                         </td>
                     </tr>
                     @empty
                     <tr>
                         <td colspan="6" class="p-20 text-center">
-                            <i class="fas fa-folder-open text-gray-100 text-7xl mb-4"></i>
-                            <p class="text-gray-400 font-black uppercase tracking-widest text-xs">Data Tidak Ditemukan</p>
+                            <p class="text-gray-400 font-black uppercase tracking-widest text-xs">Pilih rentang tanggal untuk melihat data</p>
                         </td>
                     </tr>
                     @endforelse

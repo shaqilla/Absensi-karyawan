@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -11,14 +12,34 @@
     <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
-        body, html { height: 100%; margin: 0; overflow: hidden; }
-        .dropdown-menu { display: none; }
-        .dropdown-menu.show { display: block; }
-        
+        body,
+        html {
+            height: 100%;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        .dropdown-menu {
+            display: none;
+        }
+
+        .dropdown-menu.show {
+            display: block;
+        }
+
         /* Scrollbar rapi untuk sidebar */
-        ::-webkit-scrollbar { width: 4px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #4f46e5; border-radius: 10px; }
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #4f46e5;
+            border-radius: 10px;
+        }
 
         /* Animasi Sidebar Mobile */
         #sidebar {
@@ -26,10 +47,11 @@
         }
     </style>
 </head>
+
 <body class="bg-gray-100 antialiased font-sans">
 
     <div class="flex h-screen w-screen overflow-hidden relative">
-        
+
         <!-- OVERLAY (Hanya muncul di HP saat sidebar terbuka) -->
         <div id="sidebarOverlay" onclick="toggleSidebar()" class="fixed inset-0 bg-black/50 z-40 hidden md:hidden transition-opacity"></div>
 
@@ -42,31 +64,31 @@
                     <i class="fas fa-times text-xl"></i>
                 </button>
             </div>
-            
+
             <nav class="flex-1 p-4 space-y-2 mt-4 overflow-y-auto">
                 <p class="px-4 text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em] mb-2">Utama</p>
-                
+
                 <a href="{{ route('karyawan.dashboard') }}" class="flex items-center p-3 rounded-xl transition {{ request()->routeIs('karyawan.dashboard') ? 'bg-indigo-600 shadow-lg text-white' : 'text-indigo-200 hover:bg-indigo-900 hover:text-white' }}">
-                    <i class="fas fa-th-large w-6 text-center"></i> 
+                    <i class="fas fa-th-large w-6 text-center"></i>
                     <span class="ml-3 font-bold text-sm uppercase">Dashboard</span>
                 </a>
 
                 <p class="px-4 text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em] mt-6 mb-2">Kehadiran</p>
 
                 <a href="{{ route('karyawan.scan') }}" class="flex items-center p-3 rounded-xl transition {{ request()->routeIs('karyawan.scan') ? 'bg-indigo-600 shadow-lg text-white' : 'text-indigo-200 hover:bg-indigo-900 hover:text-white' }}">
-                    <i class="fas fa-camera w-6 text-center"></i> 
+                    <i class="fas fa-camera w-6 text-center"></i>
                     <span class="ml-3 font-bold text-sm uppercase">Scan Presensi</span>
                 </a>
 
                 <a href="{{ route('karyawan.jadwal.index') }}" class="flex items-center p-3 rounded-xl transition {{ request()->routeIs('karyawan.jadwal.index') ? 'bg-indigo-600 shadow-lg text-white' : 'text-indigo-200 hover:bg-indigo-900 hover:text-white' }}">
-                    <i class="fas fa-calendar-alt w-6 text-center"></i> 
+                    <i class="fas fa-calendar-alt w-6 text-center"></i>
                     <span class="ml-3 font-bold text-sm uppercase">Jadwal Kerja Saya</span>
                 </a>
 
                 <p class="px-4 text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em] mt-6 mb-2">Layanan</p>
 
                 <a href="{{ route('karyawan.izin.index') }}" class="flex items-center p-3 rounded-xl transition {{ request()->routeIs('karyawan.izin.*') ? 'bg-indigo-600 shadow-lg text-white' : 'text-indigo-200 hover:bg-indigo-900 hover:text-white' }}">
-                    <i class="fas fa-envelope-open-text w-6 text-center"></i> 
+                    <i class="fas fa-envelope-open-text w-6 text-center"></i>
                     <span class="ml-3 font-bold text-sm uppercase">Riwayat Izin</span>
                 </a>
             </nav>
@@ -74,7 +96,7 @@
 
         <!-- AREA KONTEN (Kanan) -->
         <div class="flex-1 flex flex-col min-w-0 bg-gray-50">
-            
+
             <!-- TOPBAR (Header) -->
             <header class="bg-white shadow-sm h-20 flex items-center justify-between px-4 md:px-10 z-30 border-b">
                 <div class="flex items-center">
@@ -104,7 +126,7 @@
                         <div class="p-4 border-b border-gray-50 bg-gray-50/50">
                             <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Akun Personal</p>
                         </div>
-                        
+
                         <a href="{{ route('karyawan.profil') }}" class="flex items-center px-5 py-4 text-sm text-gray-700 hover:bg-indigo-50 transition border-b border-gray-50">
                             <i class="fas fa-user-cog w-5 text-indigo-500"></i>
                             <span class="ml-3 font-bold text-xs uppercase tracking-widest">Detail Profil</span>
@@ -143,7 +165,7 @@
         const btn = document.getElementById('userDropdownBtn');
         const menu = document.getElementById('userDropdownMenu');
 
-        if(btn && menu) {
+        if (btn && menu) {
             btn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 menu.classList.toggle('show');
@@ -157,4 +179,5 @@
         }
     </script>
 </body>
+
 </html>
