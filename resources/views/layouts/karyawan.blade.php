@@ -104,8 +104,8 @@
                     <button onclick="toggleSidebar()" class="md:hidden p-2 text-indigo-950 focus:outline-none mr-2">
                         <i class="fas fa-bars text-2xl"></i>
                     </button>
-                    <div class="text-sm font-medium text-gray-400 uppercase tracking-widest italic hidden xs:block">
-                        Employee
+                    <div class="text-sm font-bold text-indigo-950 uppercase tracking-widest hidden sm:block">
+                        Selamat Datang, <span class="text-indigo-600 font-black">{{ auth()->user()->nama }}</span>
                     </div>
                 </div>
 

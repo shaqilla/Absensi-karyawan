@@ -5,7 +5,7 @@
     <div class="flex items-center justify-between mb-8">
         <div>
             <h1 class="text-3xl font-black text-gray-800 uppercase tracking-tighter">Scan Presensi</h1>
-            <p class="text-gray-500 text-sm">Pastikan wajah dan QR Code terlihat jelas.</p>
+            <p class="text-gray-500 text-sm">Pastikan QR Code terlihat jelas.</p>
         </div>
         <a href="{{ route('karyawan.dashboard') }}" class="bg-rose-50 text-rose-600 px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-rose-600 hover:text-white transition shadow-sm border border-rose-100 flex items-center">
             <i class="fas fa-times mr-2"></i> Batalkan Scan

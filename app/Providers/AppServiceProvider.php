@@ -22,7 +22,6 @@ class AppServiceProvider extends ServiceProvider
         // Cek jika aplikasi diakses lewat Ngrok
         if (str_contains(request()->header('host'), 'ngrok-free')) {
             \Illuminate\Support\Facades\URL::forceScheme('https');
-            
             // Memaksa Laravel percaya pada header yang dikirim Ngrok
             request()->server->set('HTTPS', 'on');
         }

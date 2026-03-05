@@ -18,7 +18,7 @@ class KaryawanDashboardController extends Controller
         $hariIniTanggal = now()->toDateString();
         $waktuSekarang = now();
 
-        // 1. Mapping Hari ke HURUF KECIL
+        // 1. Ambil Nama Hari (sesuai DB)
         $hariInggris = now()->format('l');
         $daftarHari = [
             'Monday' => 'senin',
@@ -31,46 +31,42 @@ class KaryawanDashboardController extends Controller
         ];
         $namaHariIni = $daftarHari[$hariInggris];
 
-        // 2. Ambil Jadwal Kerja hari ini
+        // 2. Ambil Jadwal
         $jadwalHariIni = JadwalKerja::with('shift')
             ->where('user_id', $userId)
             ->whereRaw('LOWER(hari) = ?', [$namaHariIni])
             ->where('status', 'aktif')
             ->first();
 
-        // 3. Ambil data absen hari ini
         $presensiHariIni = Presensi::where('user_id', $userId)
             ->where('tanggal', $hariIniTanggal)
             ->first();
 
-        // 4. LOGIKA OTOMATIS ALPHA
+        // 3. LOGIKA KETAT: TOMBOL HANYA MUNCUL PAS JAMNYA
         $isAlpha = false;
-        if (!$presensiHariIni && $jadwalHariIni) {
-            $jamMasukShift = Carbon::parse($jadwalHariIni->shift->jam_masuk);
-            $batasMasuk = $jamMasukShift->addMinutes($jadwalHariIni->shift->toleransi_telat);
+        $isWaiting = false;
 
-            if ($waktuSekarang->greaterThan($batasMasuk)) {
+        if (!$presensiHariIni && $jadwalHariIni) {
+            $jamMasukShift = Carbon::parse($hariIniTanggal . ' ' . $jadwalHariIni->shift->jam_masuk);
+            $batasMasuk = $jamMasukShift->copy()->addMinutes($jadwalHariIni->shift->toleransi_telat);
+
+            if ($waktuSekarang->lt($jamMasukShift)) {
+                // BELUM JAMNYA: Tombol Gak Bakal Muncul
+                $isWaiting = true;
+            } elseif ($waktuSekarang->gt($batasMasuk)) {
+                // LEWAT TOLERANSI: Tombol Ilang, Status Jadi Alpha
                 $isAlpha = true;
             }
         }
 
-        // 5. Riwayat 7 hari terakhir
-        $riwayat = Presensi::where('user_id', $userId)
-            ->orderBy('tanggal', 'desc')
-            ->take(7)
-            ->get();
+        $riwayat = Presensi::where('user_id', $userId)->orderBy('tanggal', 'desc')->take(7)->get();
 
-        return view('karyawan.dashboard', compact('presensiHariIni', 'riwayat', 'jadwalHariIni', 'isAlpha'));
+        return view('karyawan.dashboard', compact('presensiHariIni', 'riwayat', 'jadwalHariIni', 'isAlpha', 'isWaiting'));
     }
 
     public function jadwal()
     {
-        // FIX: Pastikan tanda panah (->) benar dan tidak ada titik (.)
-        $jadwals = JadwalKerja::with('shift')
-            ->where('user_id', Auth::id())
-            ->orderByRaw("FIELD(hari, 'senin', 'selasa', 'rabu', 'kamis', 'jumat', 'sabtu', 'minggu')")
-            ->get(); // <-- Pastikan ini dipanggil dengan panah ->
-
+        $jadwals = JadwalKerja::with('shift')->where('user_id', Auth::id())->get();
         return view('karyawan.jadwal', compact('jadwals'));
     }
 
