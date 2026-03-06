@@ -16,12 +16,18 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 
-// 1. HALAMAN UTAMA (Langsung ke Dashboard)
+/*
+|--------------------------------------------------------------------------
+| Web Routes - ZENCLOCK FINAL
+|--------------------------------------------------------------------------
+*/
+
+// 1. REDIRECT HALAMAN DEPAN
 Route::get('/', function () {
     return redirect('/dashboard');
 });
 
-// 2. LOGIKA REDIRECT SETELAH LOGIN (PENTING: Memutus Inertia ke Blade)
+// 2. LOGIKA REDIRECT SETELAH LOGIN (MEMUTUS INERTIA KE BLADE)
 Route::get('/dashboard', function () {
     $user = Auth::user();
     if ($user) {
@@ -35,10 +41,10 @@ Route::get('/dashboard', function () {
     return redirect()->route('login');
 })->middleware(['auth'])->name('dashboard');
 
-// 3. RUTE TERPROTEKSI (HARUS LOGIN)
+// 3. SEMUA RUTE TERPROTEKSI AUTH
 Route::middleware('auth')->group(function () {
     
-    // Rute Profile Standar Breeze (Tetap biarkan jika ingin ganti password/email)
+    // Rute Profile (Breeze Dasar)
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
@@ -65,15 +71,17 @@ Route::middleware('auth')->group(function () {
         Route::get('/lokasi-kantor', [LokasiKantorController::class, 'index'])->name('admin.lokasi.index');
         Route::post('/lokasi-kantor', [LokasiKantorController::class, 'update'])->name('admin.lokasi.update');
 
-        // Operasional: Absensi & Monitor QR (Tab Baru)
+        // Operasional: Absensi & Monitor QR
         Route::get('/monitor-qr', function () { return view('admin.monitor_qr'); })->name('admin.monitor.index');
         Route::get('/qr-scanner', function () { return view('admin.qr_generator'); })->name('admin.qr.view');
         Route::get('/generate-new-token', [QrController::class, 'generate'])->name('admin.qr.generate');
         
-        // Laporan & Persetujuan Izin
-        Route::get('/laporan', [LaporanController::class, 'index'])->name('admin.laporan.index');
+        // Operasional: Persetujuan Izin
         Route::get('/pengajuan', [PengajuanController::class, 'index'])->name('admin.pengajuan.index');
         Route::patch('/pengajuan/{id}', [PengajuanController::class, 'updateStatus'])->name('admin.pengajuan.update'); 
+
+        // LAPORAN & CETAK PDF (DIPISAH AGAR TIDAK RUSAK)
+        Route::get('/laporan', [LaporanController::class, 'index'])->name('admin.laporan.index');
     });
 
     // ============================
@@ -89,7 +97,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/absen/store', [AbsensiController::class, 'store'])->name('karyawan.absen.store');
         Route::get('/jadwal-kerja', [KaryawanDashboardController::class, 'jadwal'])->name('karyawan.jadwal.index');
 
-        // Fitur Pengajuan Izin (Riwayat, Form, Simpan)
+        // Fitur Pengajuan Izin
         Route::get('/izin', [PengajuanIzinController::class, 'index'])->name('karyawan.izin.index');
         Route::get('/izin/create', [PengajuanIzinController::class, 'create'])->name('karyawan.izin.create');
         Route::post('/izin/store', [PengajuanIzinController::class, 'store'])->name('karyawan.izin.store');
