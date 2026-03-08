@@ -2,25 +2,36 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Presensi extends Model
 {
+    use HasFactory;
+
     protected $fillable = [
-        'user_id', 'qr_session_id', 'tanggal', 'jam_masuk', 
-        'jam_keluar', 'latitude', 'longitude', 'status', 
-        'kategori_id', 'keterangan'
+        'user_id',
+        'qr_session_id',
+        'shift_id', 
+        'tanggal',
+        'jam_masuk',
+        'jam_keluar',
+        'latitude',
+        'longitude',
+        'status',
+        'kategori_id',
+        'keterangan'
     ];
 
-    public function user() {
-        return $this->belongsTo(User::class);
+    // Relasi ke User
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'user_id');
     }
 
-    public function qrSession() {
-        return $this->belongsTo(QrSession::class);
-    }
-
-    public function kategori() {
-        return $this->belongsTo(KategoriAbsen::class, 'kategori_id');
+    // RELASI YANG TADI HILANG (INI YANG BIKIN ERROR)
+    public function shift()
+    {
+        return $this->belongsTo(Shift::class, 'shift_id');
     }
 }

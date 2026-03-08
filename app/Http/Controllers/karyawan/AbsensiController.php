@@ -15,9 +15,6 @@ use Carbon\Carbon;
 
 class AbsensiController extends Controller
 {
-    /**
-     * FUNGSI 1: Membuka Halaman Scan (Metode GET)
-     */
     public function index()
     {
         $lokasi = LokasiKantor::first();
@@ -27,9 +24,6 @@ class AbsensiController extends Controller
         return view('karyawan.scan', compact('lokasi'));
     }
 
-    /**
-     * FUNGSI 2: Proses Simpan Data (Metode POST)
-     */
     public function store(Request $request)
     {
         $lokasi = LokasiKantor::first();
@@ -37,51 +31,61 @@ class AbsensiController extends Controller
         $hariIniTanggal = now()->toDateString();
         $waktuSekarang = now();
 
-        // 1. Ambil Jadwal
+        // 1. Ambil Nama Hari
         $hariInggris = now()->format('l');
         $daftarHari = ['Monday' => 'senin', 'Tuesday' => 'selasa', 'Wednesday' => 'rabu', 'Thursday' => 'kamis', 'Friday' => 'jumat', 'Saturday' => 'sabtu', 'Sunday' => 'minggu'];
         $namaHariIni = $daftarHari[$hariInggris];
 
-        $jadwal = JadwalKerja::with('shift')->where('user_id', $userId)->whereRaw('LOWER(hari) = ?', [$namaHariIni])->where('status', 'aktif')->first();
+        // 2. Ambil Jadwal Kerja Aktif
+        $jadwal = JadwalKerja::with('shift')
+            ->where('user_id', $userId)
+            ->whereRaw('LOWER(hari) = ?', [$namaHariIni])
+            ->where('status', 'aktif')
+            ->first();
 
         if (!$jadwal) {
-            return response()->json(['success' => false, 'message' => 'Gak ada jadwal hari ini!'], 422);
+            return response()->json(['success' => false, 'message' => 'Gak ada jadwal buat kamu hari ini!'], 422);
         }
 
-        // 2. Validasi Jarak & QR (Tetap Harus Ada)
+        // 3. Validasi Jarak GPS
         $jarak = GeoHelper::calculateDistance($request->lat, $request->lng, $lokasi->latitude, $lokasi->longitude);
         if ($jarak > $lokasi->radius) {
-            return response()->json(['success' => false, 'message' => 'Anda di luar radius!'], 403);
+            return response()->json(['success' => false, 'message' => 'Gagal! Di luar radius kantor.'], 403);
         }
 
-        // 3. LOGIKA KETAT ABSEN MASUK
-        $presensi = Presensi::where('user_id', $userId)->where('tanggal', $hariIniTanggal)->first();
-
+        // 4. KUNCI JAM SHIFT
         $jamMasukShift = Carbon::parse($hariIniTanggal . ' ' . $jadwal->shift->jam_masuk);
         $batasMasuk = $jamMasukShift->copy()->addMinutes($jadwal->shift->toleransi_telat);
         $jamPulangShift = Carbon::parse($hariIniTanggal . ' ' . $jadwal->shift->jam_keluar);
 
+        $presensi = Presensi::where('user_id', $userId)->where('tanggal', $hariIniTanggal)->first();
+
         if (!$presensi) {
-            // CEK APAKAH TERLALU CEPAT? (Cuma boleh pas jamnya atau lebih)
+
+            // ---ABSEN MASUK ---
+
+
+            // JIKA SHIFT BELUM DIMULAI
             if ($waktuSekarang->lt($jamMasukShift)) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Gak bisa absen! Belum masuk jam kerja (' . $jadwal->shift->jam_masuk . ').'
+                    'message' => 'Gak bisa absen! Belum masuk jam kerja. Jadwal Anda: ' . $jadwal->shift->jam_masuk
                 ], 422);
             }
 
-            // CEK APAKAH TERLALU LAMBAT? (Alpha)
+            // JIKA SUDAH LEWAT TOLERANSI (ALPHA)
             if ($waktuSekarang->gt($batasMasuk)) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Gak bisa absen! Kamu udah melebihi batas waktu jam kerja (Kamu tidak masuk kerja).'
+                    'message' => 'Gak bisa absen! Kamu udah melewati batas waktu (Alpha).'
                 ], 422);
             }
 
-            // Simpan Masuk
+            // SIMPAN ABSEN DENGAN MENGUNCI ID SHIFT (REVISI GURU)
             Presensi::create([
                 'user_id' => $userId,
                 'qr_session_id' => QrSession::where('token', $request->token)->first()->id ?? null,
+                'shift_id' => $jadwal->shift_id, // <--- INI KUNCI SNAPSHOTNYA
                 'tanggal' => $hariIniTanggal,
                 'jam_masuk' => $waktuSekarang,
                 'latitude' => $request->lat,
@@ -89,19 +93,26 @@ class AbsensiController extends Controller
                 'status' => 'hadir',
                 'kategori_id' => 1
             ]);
-            return response()->json(['success' => true, 'message' => 'Berhasil absen masuk tepat waktu!']);
+            return response()->json(['success' => true, 'message' => 'Berhasil absen masuk!']);
         } else {
-            // --- LOGIKA PULANG ---
+            // ============================
+            // --- LOGIKA ABSEN PULANG ---
+
             if ($presensi->jam_keluar != null) {
-                return response()->json(['success' => false, 'message' => 'Sudah absen pulang!'], 422);
+                return response()->json(['success' => false, 'message' => 'Udah absen pulang!'], 422);
             }
 
+            // CEK APAKAH SUDAH WAKTUNYA PULANG
             if ($waktuSekarang->lt($jamPulangShift)) {
-                return response()->json(['success' => false, 'message' => 'Belum waktunya pulang!'], 422);
+                $menit = $waktuSekarang->diffInMinutes($jamPulangShift);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Belum jam pulang! Tunggu ' . $menit . ' menit lagi.'
+                ], 422);
             }
 
             $presensi->update(['jam_keluar' => $waktuSekarang]);
-            return response()->json(['success' => true, 'message' => 'Berhasil absen pulang!']);
+            return response()->json(['success' => true, 'message' => 'Berhasil absen pulang! Hati-hati di jalan.']);
         }
     }
 }

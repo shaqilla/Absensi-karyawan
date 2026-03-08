@@ -18,20 +18,12 @@ class KaryawanDashboardController extends Controller
         $hariIniTanggal = now()->toDateString();
         $waktuSekarang = now();
 
-        // 1. Ambil Nama Hari (sesuai DB)
+        // 1. Mapping Hari
         $hariInggris = now()->format('l');
-        $daftarHari = [
-            'Monday' => 'senin',
-            'Tuesday' => 'selasa',
-            'Wednesday' => 'rabu',
-            'Thursday' => 'kamis',
-            'Friday' => 'jumat',
-            'Saturday' => 'sabtu',
-            'Sunday' => 'minggu'
-        ];
+        $daftarHari = ['Monday' => 'senin', 'Tuesday' => 'selasa', 'Wednesday' => 'rabu', 'Thursday' => 'kamis', 'Friday' => 'jumat', 'Saturday' => 'sabtu', 'Sunday' => 'minggu'];
         $namaHariIni = $daftarHari[$hariInggris];
 
-        // 2. Ambil Jadwal
+        // 2. Ambil Jadwal Kerja Spesifik Karyawan ini
         $jadwalHariIni = JadwalKerja::with('shift')
             ->where('user_id', $userId)
             ->whereRaw('LOWER(hari) = ?', [$namaHariIni])
@@ -42,20 +34,21 @@ class KaryawanDashboardController extends Controller
             ->where('tanggal', $hariIniTanggal)
             ->first();
 
-        // 3. LOGIKA KETAT: TOMBOL HANYA MUNCUL PAS JAMNYA
+        // 3. LOGIKA PENGUNCIAN SHIFT (Sesuai Request Anda)
         $isAlpha = false;
         $isWaiting = false;
+        $isWrongShift = false; // Status jika mencoba absen di jam shift lain
 
         if (!$presensiHariIni && $jadwalHariIni) {
             $jamMasukShift = Carbon::parse($hariIniTanggal . ' ' . $jadwalHariIni->shift->jam_masuk);
             $batasMasuk = $jamMasukShift->copy()->addMinutes($jadwalHariIni->shift->toleransi_telat);
+            $jamPulangShift = Carbon::parse($hariIniTanggal . ' ' . $jadwalHariIni->shift->jam_keluar);
 
+            // Aturan: Tombol HANYA muncul pas jam masuk (Tidak boleh curi start / salah shift)
             if ($waktuSekarang->lt($jamMasukShift)) {
-                // BELUM JAMNYA: Tombol Gak Bakal Muncul
-                $isWaiting = true;
+                $isWaiting = true; // Jam kerja belum mulai
             } elseif ($waktuSekarang->gt($batasMasuk)) {
-                // LEWAT TOLERANSI: Tombol Ilang, Status Jadi Alpha
-                $isAlpha = true;
+                $isAlpha = true; // telat parah (Alpha)
             }
         }
 

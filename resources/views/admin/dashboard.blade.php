@@ -2,7 +2,6 @@
 
 @section('content')
 <div class="w-full pb-10">
-    <!-- HEADER: Judul yang menyesuaikan ukuran layar -->
     <div class="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
         <div class="text-center md:text-left">
             <h1 class="text-2xl md:text-3xl font-black text-gray-800 uppercase tracking-tighter">Ringkasan Hari Ini</h1>
@@ -15,9 +14,8 @@
         </div>
     </div>
 
-    <!-- GRID STATISTIK: 1 kolom di HP, 2 di Tablet, 4 di Laptop -->
+    <!-- GRID STATISTIK -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-10">
-
         <!-- Total Karyawan -->
         <div class="bg-white p-6 rounded-[2rem] shadow-sm border-b-4 border-blue-500 transition-all hover:shadow-md">
             <div class="flex items-center justify-between">
@@ -58,7 +56,7 @@
         </div>
 
         <!-- Tidak Hadir -->
-        <div class="bg-white p-6 rounded-[2rem] shadow-sm border-b-4 border-rose-500 transition-all hover:shadow-md">
+        <div class="bg-white p-6 rounded-[2rem] shadow-sm border-b-4 border-rose-500">
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-[10px] text-gray-400 font-black uppercase tracking-widest mb-1">Tidak Hadir</p>
@@ -71,7 +69,7 @@
         </div>
     </div>
 
-    <!-- TABEL PRESENSI TERBARU (Lebar Penuh & Responsif) -->
+    <!-- TABEL PRESENSI TERBARU -->
     <div class="bg-white rounded-[2rem] shadow-sm border border-gray-100 overflow-hidden">
         <div class="p-6 md:p-8 border-b border-gray-50 flex justify-between items-center bg-gray-50/30">
             <div class="flex items-center">
@@ -81,13 +79,13 @@
             <i class="fas fa-history text-gray-300 hidden sm:block"></i>
         </div>
 
-        <!-- Overflow X agar di HP tabel bisa di-geser (swipe) -->
         <div class="overflow-x-auto w-full">
-            <table class="w-full text-left border-collapse min-w-[600px]">
+            <table class="w-full text-left border-collapse min-w-[700px]">
                 <thead>
                     <tr class="text-gray-400 text-[10px] font-black uppercase tracking-widest border-b border-gray-50">
                         <th class="p-6">Pegawai</th>
                         <th class="p-6 text-center">Waktu Scan</th>
+                        <th class="p-6 text-center">Shift (History)</th>
                         <th class="p-6 text-center">Status</th>
                         <th class="p-6">Unit Kerja</th>
                     </tr>
@@ -111,6 +109,12 @@
                                 {{ date('H:i', strtotime($p->jam_masuk)) }} <span class="font-medium opacity-50">WIB</span>
                             </span>
                         </td>
+                        <!-- KOLOM SHIFT (SNAPSHOT) -->
+                        <td class="p-6 text-center">
+                            <span class="text-[10px] font-black text-indigo-500 bg-indigo-50 px-2 py-1 rounded-md uppercase border border-indigo-100">
+                                {{ $p->shift->nama_shift ?? 'Umum' }}
+                            </span>
+                        </td>
                         <td class="p-6 text-center">
                             <span class="px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border
                                 {{ $p->status == 'hadir' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-amber-50 text-amber-600 border-amber-100' }}">
@@ -125,7 +129,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="4" class="p-20 text-center">
+                        <td colspan="5" class="p-20 text-center">
                             <div class="flex flex-col items-center">
                                 <i class="fas fa-inbox text-gray-100 text-7xl mb-4"></i>
                                 <p class="text-gray-400 font-black uppercase tracking-widest text-[10px]">Belum ada aktivitas hari ini</p>

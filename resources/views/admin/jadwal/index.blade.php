@@ -2,7 +2,7 @@
 
 @section('content')
 <div class="w-full pb-10">
-    <!-- HEADER SECTION: Responsif (Tumpuk di HP, Menyamping di Laptop) -->
+    <!-- HEADER SECTION -->
     <div class="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
         <div class="text-center md:text-left">
             <h1 class="text-2xl md:text-3xl font-black text-gray-800 uppercase tracking-tighter">Jadwal Kerja Pegawai</h1>
@@ -15,14 +15,13 @@
 
     <!-- NOTIFIKASI -->
     @if(session('success'))
-        <div class="bg-emerald-100 border-l-4 border-emerald-500 text-emerald-700 p-4 mb-6 rounded-xl shadow-sm text-xs font-bold uppercase tracking-tight">
-            <i class="fas fa-check-circle mr-2"></i> {{ session('success') }}
-        </div>
+    <div class="bg-emerald-100 border-l-4 border-emerald-500 text-emerald-700 p-4 mb-6 rounded-xl shadow-sm text-xs font-bold uppercase tracking-tight">
+        <i class="fas fa-check-circle mr-2"></i> {{ session('success') }}
+    </div>
     @endif
 
     <!-- TABEL AREA -->
     <div class="bg-white rounded-2xl md:rounded-[2rem] shadow-sm border border-gray-100 overflow-hidden">
-        <!-- KUNCI RESPONSIF: Overflow X Auto agar bisa di-swipe di ponsel -->
         <div class="overflow-x-auto w-full">
             <table class="w-full text-left border-collapse min-w-[800px]">
                 <thead>
@@ -54,22 +53,28 @@
                             </span>
                         </td>
                         <td class="p-4 md:p-6 text-center">
-                            <div class="inline-flex flex-col">
-                                <span class="text-xs font-black text-indigo-600 uppercase">{{ $j->shift->nama_shift ?? 'N/A' }}</span>
-                            </div>
+                            <span class="text-xs font-black text-indigo-600 uppercase">{{ $j->shift->nama_shift ?? 'N/A' }}</span>
                         </td>
                         <td class="p-4 md:p-6 text-center">
                             <span class="font-mono font-bold text-gray-500 text-xs bg-gray-50 px-2 py-1 rounded border border-gray-100">
-                                {{ date('H:i', strtotime($j->shift->jam_masuk)) }} - {{ date('H:i', strtotime($j->shift->jam_keluar)) }}
+                                {{ $j->shift ? date('H:i', strtotime($j->shift->jam_masuk)) : '--' }} - {{ $j->shift ? date('H:i', strtotime($j->shift->jam_keluar)) : '--' }}
                             </span>
                         </td>
                         <td class="p-4 md:p-6 text-center">
-                            <form action="{{ route('admin.jadwal.destroy', $j->id) }}" method="POST" onsubmit="return confirm('Hapus jadwal ini?')">
-                                @csrf @method('DELETE')
-                                <button type="submit" class="w-9 h-9 rounded-xl bg-rose-50 text-rose-500 hover:bg-rose-600 hover:text-white transition-all flex items-center justify-center mx-auto shadow-sm border border-rose-100">
-                                    <i class="fas fa-trash-alt text-xs"></i>
-                                </button>
-                            </form>
+                            <div class="flex justify-center items-center gap-2 md:gap-3">
+                                <!-- TOMBOL EDIT (BARU) -->
+                                <a href="{{ route('admin.jadwal.edit', $j->id) }}" class="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center hover:bg-amber-600 hover:text-white transition-all shadow-sm border border-amber-100">
+                                    <i class="fas fa-edit text-xs"></i>
+                                </a>
+
+                                <!-- TOMBOL HAPUS -->
+                                <form action="{{ route('admin.jadwal.destroy', $j->id) }}" method="POST" onsubmit="return confirm('Hapus jadwal ini?')">
+                                    @csrf @method('DELETE')
+                                    <button type="submit" class="w-9 h-9 rounded-xl bg-rose-50 text-rose-500 flex items-center justify-center hover:bg-rose-600 hover:text-white transition-all shadow-sm border border-rose-100">
+                                        <i class="fas fa-trash-alt text-xs"></i>
+                                    </button>
+                                </form>
+                            </div>
                         </td>
                     </tr>
                     @empty

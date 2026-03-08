@@ -3,10 +3,10 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>Export PDF - Laporan Kehadiran</title>
+    <title>Laporan Kehadiran - PDF</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* 1. ATUR KERTAS - PAKSA NEMPEL PALING ATAS */
+        /* 1. PAKSA KERTAS NEMPEL PALING ATAS */
         @page {
             margin: 0;
             size: auto;
@@ -15,7 +15,7 @@
         body {
             margin: 0 !important;
             padding: 1cm !important;
-            /* Jarak aman biar gak kepotong printer, tapi tetep di baris atas */
+            /* Jarak standar agar teks tidak terpotong printer */
             background: white !important;
             font-family: sans-serif;
             -webkit-print-color-adjust: exact;
@@ -26,7 +26,7 @@
         .header {
             text-align: center;
             margin-top: 0 !important;
-            margin-bottom: 30px;
+            margin-bottom: 25px;
             border-bottom: 2px solid #000;
             padding-bottom: 10px;
         }
@@ -36,6 +36,7 @@
             font-size: 22px;
             font-weight: bold;
             text-transform: uppercase;
+            color: black;
         }
 
         .header h2 {
@@ -45,43 +46,43 @@
             font-weight: bold;
         }
 
-        /* 3. TABEL TANPA BORDER DI UJUNG LUAR (REQUEST ANDA) */
+        /* 3. TABEL TANPA BORDER UJUNG LUAR (HANYA GARIS DALAM) */
         table {
             width: 100%;
             border-collapse: collapse;
             margin-top: 0;
             border: none !important;
-            /* Hilangkan border utama tabel */
+            /* Hilangkan border kotak luar */
         }
 
         th,
         td {
             border: 1px solid #e2e8f0;
-            /* Hanya garis pembatas di dalam */
+            /* Garis pembatas tipis di dalam saja */
             padding: 10px;
             font-size: 11px;
             text-align: left;
             color: black !important;
         }
 
-        /* Hapus garis border yang nempel di sisi paling luar (ujung-ujung) */
+        /* INI KUNCI MENGHILANGKAN BORDER DI UJUNG TABEL */
         th:first-child,
         td:first-child {
             border-left: none !important;
         }
 
+        /* Ujung kiri hilang */
         th:last-child,
         td:last-child {
             border-right: none !important;
         }
 
+        /* Ujung kanan hilang */
         thead tr:first-child th {
             border-top: none !important;
         }
 
-        tbody tr:last-child td {
-            border-bottom: none !important;
-        }
+        /* Atas tabel hilang */
 
         th {
             background-color: #f8fafc !important;
@@ -94,14 +95,19 @@
 
 <body onload="window.print()">
 
-    <!-- KOP LAPORAN (NEMPEL ATAS) -->
+    <!-- KOP LAPORAN (NEMPEL PALING ATAS) -->
     <div class="header">
-        <h1>Laporan Kehadiran Karyawan</h1>
+        <h1>Rekap Kehadiran Karyawan</h1>
         <h2>Zenclock Intelligent System</h2>
         <p style="font-size: 10px; margin: 5px 0;">Periode: {{ date('d M Y', strtotime($start_date)) }} s/d {{ date('d M Y', strtotime($end_date)) }}</p>
     </div>
 
-    <!-- TABEL DATA (MURNI TABEL AJA, GAK PAKE KOTAK-KOTAK STATISTIK) -->
+    <!-- 
+        BAGIAN STATISTIK (KOTAK-KOTAK) SUDAH SAYA HAPUS TOTAL DI SINI 
+        AGAR TIDAK MUNCUL DI PDF 
+    -->
+
+    <!-- TABEL DATA (MURNI TABEL SAJA) -->
     <table>
         <thead>
             <tr>
@@ -116,7 +122,7 @@
             @forelse($laporans as $l)
             <tr>
                 <td>
-                    <div style="font-weight: bold; text-transform: uppercase;">{{ $l->nama }}</div>
+                    <div style="font-weight: bold; text-transform: uppercase; font-size: 11px;">{{ $l->nama }}</div>
                     <div style="font-size: 9px; color: #64748b; text-transform: uppercase;">{{ $l->departemen }}</div>
                 </td>
                 <td style="text-align: center;">{{ date('d/m/Y', strtotime($l->tanggal)) }}</td>
