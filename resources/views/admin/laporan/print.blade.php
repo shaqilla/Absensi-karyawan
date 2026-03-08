@@ -6,70 +6,102 @@
     <title>Export PDF - Laporan Kehadiran</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
+        /* 1. ATUR KERTAS - PAKSA NEMPEL PALING ATAS */
         @page {
             margin: 0;
             size: auto;
         }
 
         body {
-            margin: 0;
-            padding: 1cm;
+            margin: 0 !important;
+            padding: 1cm !important;
+            /* Jarak aman biar gak kepotong printer, tapi tetep di baris atas */
             background: white !important;
             font-family: sans-serif;
             -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
         }
 
+        /* 2. HEADER LAPORAN - RAPAT KE ATAS */
         .header {
             text-align: center;
-            margin-bottom: 20px;
-            border-bottom: 3px double #000;
+            margin-top: 0 !important;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #000;
             padding-bottom: 10px;
         }
 
+        .header h1 {
+            margin: 0;
+            font-size: 22px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .header h2 {
+            margin: 0;
+            font-size: 14px;
+            color: #4f46e5;
+            font-weight: bold;
+        }
+
+        /* 3. TABEL TANPA BORDER DI UJUNG LUAR (REQUEST ANDA) */
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 10px;
+            margin-top: 0;
+            border: none !important;
+            /* Hilangkan border utama tabel */
         }
 
         th,
         td {
-            border: 1px solid #ccc;
-            padding: 8px;
+            border: 1px solid #e2e8f0;
+            /* Hanya garis pembatas di dalam */
+            padding: 10px;
             font-size: 11px;
+            text-align: left;
+            color: black !important;
+        }
+
+        /* Hapus garis border yang nempel di sisi paling luar (ujung-ujung) */
+        th:first-child,
+        td:first-child {
+            border-left: none !important;
+        }
+
+        th:last-child,
+        td:last-child {
+            border-right: none !important;
+        }
+
+        thead tr:first-child th {
+            border-top: none !important;
+        }
+
+        tbody tr:last-child td {
+            border-bottom: none !important;
         }
 
         th {
-            background-color: #f3f4f6;
+            background-color: #f8fafc !important;
+            font-weight: bold;
+            text-transform: uppercase;
+            color: #64748b !important;
         }
     </style>
 </head>
 
-<body onload="window.print()"> <!-- Otomatis buka jendela print -->
+<body onload="window.print()">
 
-    <!-- KOP LAPORAN -->
+    <!-- KOP LAPORAN (NEMPEL ATAS) -->
     <div class="header">
-        <h1 class="text-2xl font-black uppercase">Rekap Kehadiran Karyawan</h1>
-        <h2 class="text-sm font-bold text-indigo-600 uppercase">Zenclock Intelligent System</h2>
-        <p class="text-[10px] italic">Periode: {{ date('d/m/Y', strtotime($start_date)) }} s/d {{ date('d/m/Y', strtotime($end_date)) }}</p>
+        <h1>Laporan Kehadiran Karyawan</h1>
+        <h2>Zenclock Intelligent System</h2>
+        <p style="font-size: 10px; margin: 5px 0;">Periode: {{ date('d M Y', strtotime($start_date)) }} s/d {{ date('d M Y', strtotime($end_date)) }}</p>
     </div>
 
-    <!-- STATISTIK (TANPA CHART) -->
-    <div class="grid grid-cols-3 gap-4 mb-6">
-        @php
-        $labels = ['Hadir', 'Telat', 'Izin', 'Sakit', 'Cuti', 'Alpha'];
-        $colors = ['text-emerald-600', 'text-amber-500', 'text-blue-500', 'text-purple-500', 'text-indigo-500', 'text-rose-600'];
-        $bgColors = ['bg-emerald-50', 'bg-amber-50', 'bg-blue-50', 'bg-purple-50', 'bg-indigo-50', 'bg-rose-50'];
-        @endphp
-        @foreach($chartData['datasets'] as $key => $val)
-        <div class="{{ $bgColors[$key] }} p-4 rounded-xl border border-gray-200 text-center">
-            <p class="text-[8px] font-black uppercase text-gray-400">{{ $labels[$key] }}</p>
-            <h4 class="text-xl font-black {{ $colors[$key] }}">{{ $val }}</h4>
-        </div>
-        @endforeach
-    </div>
-
-    <!-- TABEL DATA -->
+    <!-- TABEL DATA (MURNI TABEL AJA, GAK PAKE KOTAK-KOTAK STATISTIK) -->
     <table>
         <thead>
             <tr>
@@ -84,19 +116,19 @@
             @forelse($laporans as $l)
             <tr>
                 <td>
-                    <div class="font-bold uppercase">{{ $l->nama }}</div>
-                    <div class="text-[9px] text-gray-500 uppercase">{{ $l->departemen }}</div>
+                    <div style="font-weight: bold; text-transform: uppercase;">{{ $l->nama }}</div>
+                    <div style="font-size: 9px; color: #64748b; text-transform: uppercase;">{{ $l->departemen }}</div>
                 </td>
-                <td align="center">{{ date('d/m/Y', strtotime($l->tanggal)) }}</td>
-                <td align="center">{{ $l->jam_masuk }}</td>
-                <td align="center">{{ $l->jam_keluar }}</td>
-                <td align="center">
-                    <span style="text-transform: uppercase; font-weight: bold;">{{ $l->status }}</span>
+                <td style="text-align: center;">{{ date('d/m/Y', strtotime($l->tanggal)) }}</td>
+                <td style="text-align: center; font-weight: bold;">{{ $l->jam_masuk }}</td>
+                <td style="text-align: center; font-weight: bold;">{{ $l->jam_keluar }}</td>
+                <td style="text-align: center;">
+                    <span style="font-weight: 800; text-transform: uppercase; font-size: 10px;">{{ $l->status }}</span>
                 </td>
             </tr>
             @empty
             <tr>
-                <td colspan="5" align="center">Data Tidak Ditemukan</td>
+                <td colspan="5" style="text-align: center; padding: 50px;">DATA TIDAK DITEMUKAN</td>
             </tr>
             @endforelse
         </tbody>
