@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Karyawan;
 use App\Models\Presensi;
 use App\Models\Pengajuan;
+use App\Models\JadwalKerja;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 
@@ -13,28 +14,33 @@ class LaporanController extends Controller
 {
     public function index(Request $request)
     {
-        // 1. Ambil range tanggal dari filter (Default hari ini)
-        $start_date = $request->start_date ?? now()->toDateString();
-        $end_date = $request->end_date ?? now()->toDateString();
+        date_default_timezone_set('Asia/Jakarta');
+        $hariIni = now()->toDateString();
+        $waktuSekarang = now();
 
-        // 2. Ambil semua karyawan aktif (Tanpa Admin jika ingin laporan staf saja)
+        $start_date = $request->start_date ?? $hariIni;
+        $end_date = $request->end_date ?? $hariIni;
+
+        // 1. Ambil Data Dasar
         $karyawans = Karyawan::with(['user', 'departemen'])->get();
-
-        // 3. Ambil data absen dan pengajuan (izin/sakit/cuti) yang di-acc dalam range tsb
-        $allPresensi = Presensi::whereBetween('tanggal', [$start_date, $end_date])->get();
+        $allPresensi = Presensi::with('shift')->whereBetween('tanggal', [$start_date, $end_date])->get();
         $allPengajuan = Pengajuan::where('status_approval', 'disetujui')
             ->where(function ($q) use ($start_date, $end_date) {
                 $q->whereBetween('tanggal_mulai', [$start_date, $end_date])
-                    ->orWhereBetween('tanggal_selesai', [$start_date, $end_date])
-                    // Antisipasi izin jangka panjang yang melewati range filter
-                    ->orWhere(function ($sub) use ($start_date, $end_date) {
-                        $sub->where('tanggal_mulai', '<=', $start_date)
-                            ->where('tanggal_selesai', '>=', $end_date);
-                    });
+                    ->orWhereBetween('tanggal_selesai', [$start_date, $end_date]);
             })->get();
 
+        $mappingHari = [
+            'Monday' => 'senin',
+            'Tuesday' => 'selasa',
+            'Wednesday' => 'rabu',
+            'Thursday' => 'kamis',
+            'Friday' => 'jumat',
+            'Saturday' => 'sabtu',
+            'Sunday' => 'minggu'
+        ];
+
         $laporanData = [];
-        // Inisialisasi variabel untuk Chart
         $totalHadir = 0;
         $totalTelat = 0;
         $totalIzin = 0;
@@ -42,65 +48,82 @@ class LaporanController extends Controller
         $totalCuti = 0;
         $totalAlpha = 0;
 
-        // 4. Generate Data Laporan per Hari per Karyawan
         $begin = new \DateTime($start_date);
         $end = new \DateTime($end_date);
         $end->modify('+1 day');
-        $interval = new \DateInterval('P1D');
-        $daterange = new \DatePeriod($begin, $interval, $end);
+        $daterange = new \DatePeriod($begin, new \DateInterval('P1D'), $end);
 
         foreach ($daterange as $date) {
             $tgl = $date->format("Y-m-d");
+            $hariNama = $mappingHari[$date->format("l")];
 
             foreach ($karyawans as $k) {
-                // Cari data presensi karyawan k di tanggal tgl
                 $presensi = $allPresensi->where('tanggal', $tgl)->where('user_id', $k->user_id)->first();
-
-                // Cari data pengajuan di tanggal tgl
                 $pengajuan = $allPengajuan->where('user_id', $k->user_id)
                     ->filter(function ($item) use ($tgl) {
                         return $tgl >= $item->tanggal_mulai && $tgl <= $item->tanggal_selesai;
                     })->first();
 
-                // Penentuan Status dan Perhitungan Statistik
+                // Cari jadwal kerja untuk hari tersebut
+                $jadwal = JadwalKerja::with('shift')
+                    ->where('user_id', $k->user_id)
+                    ->where('hari', $hariNama)
+                    ->where('status', 'aktif')
+                    ->first();
+
+                $status = '';
+                $shouldShow = false;
+
                 if ($presensi) {
-                    $status = $presensi->status; // 'hadir' atau 'telat'
-                    $jam_masuk = $presensi->jam_masuk ? date('H:i', strtotime($presensi->jam_masuk)) : '--:--';
-                    $jam_keluar = $presensi->jam_keluar ? date('H:i', strtotime($presensi->jam_keluar)) : '--:--';
-                    $keterangan = $presensi->keterangan ?? 'Hadir Kerja';
-
-                    if ($status == 'hadir') $totalHadir++;
-                    else $totalTelat++;
+                    $shouldShow = true;
+                    $status = $presensi->status;
                 } elseif ($pengajuan) {
-                    $status = $pengajuan->jenis_pengajuan; // 'sakit', 'izin', 'cuti'
-                    $jam_masuk = '--:--';
-                    $jam_keluar = '--:--';
-                    $keterangan = $pengajuan->alasan;
-
-                    if ($status == 'izin') $totalIzin++;
-                    elseif ($status == 'sakit') $totalSakit++;
-                    else $totalCuti++;
+                    $shouldShow = true;
+                    $status = $pengajuan->jenis_pengajuan;
                 } else {
-                    $status = 'alpha';
-                    $jam_masuk = '--:--';
-                    $jam_keluar = '--:--';
-                    $keterangan = 'Tanpa Keterangan';
-                    $totalAlpha++;
+                    // LOGIKA PERBAIKAN: Hanya tampilkan Alpha jika waktu sudah melewati jam masuk
+                    if ($jadwal) {
+                        // Gabungkan tanggal laporan dengan jam masuk shift + toleransi
+                        $batasMasuk = Carbon::parse($tgl . ' ' . $jadwal->shift->jam_masuk)
+                            ->addMinutes($jadwal->shift->toleransi_telat);
+
+                        if ($tgl < $hariIni) {
+                            // Jika tanggal sudah lewat, otomatis Alpha
+                            $shouldShow = true;
+                            $status = 'alpha';
+                        } elseif ($tgl == $hariIni && $waktuSekarang->greaterThan($batasMasuk)) {
+                            // Jika tanggal hari ini, hanya tampilkan Alpha jika SUDAH MELEWATI jam masuk
+                            $shouldShow = true;
+                            $status = 'alpha';
+                        }
+                    }
                 }
 
-                $laporanData[] = (object)[
-                    'nama' => $k->user->nama,
-                    'departemen' => $k->departemen->nama_departemen ?? 'General',
-                    'tanggal' => $tgl,
-                    'jam_masuk' => $jam_masuk,
-                    'jam_keluar' => $jam_keluar,
-                    'status' => $status,
-                    'keterangan' => $keterangan
-                ];
+                if ($shouldShow) {
+                    $jam_masuk = $presensi ? date('H:i', strtotime($presensi->jam_masuk)) : '--:--';
+                    $jam_keluar = ($presensi && $presensi->jam_keluar) ? date('H:i', strtotime($presensi->jam_keluar)) : '--:--';
+                    $ket = $presensi ? ($presensi->keterangan ?? 'Hadir') : ($pengajuan ? $pengajuan->alasan : 'Alpha');
+
+                    if ($status == 'hadir') $totalHadir++;
+                    elseif ($status == 'telat') $totalTelat++;
+                    elseif ($status == 'izin') $totalIzin++;
+                    elseif ($status == 'sakit') $totalSakit++;
+                    elseif ($status == 'cuti') $totalCuti++;
+                    else $totalAlpha++;
+
+                    $laporanData[] = (object)[
+                        'nama' => $k->user->nama,
+                        'departemen' => $k->departemen->nama_departemen ?? 'N/A',
+                        'tanggal' => $tgl,
+                        'jam_masuk' => $jam_masuk,
+                        'jam_keluar' => $jam_keluar,
+                        'status' => $status,
+                        'keterangan' => $ket
+                    ];
+                }
             }
         }
 
-        // Susun data final untuk dikirim ke view
         $chartData = [
             'labels' => ['Hadir', 'Telat', 'Izin', 'Sakit', 'Cuti', 'Alpha'],
             'datasets' => [$totalHadir, $totalTelat, $totalIzin, $totalSakit, $totalCuti, $totalAlpha]

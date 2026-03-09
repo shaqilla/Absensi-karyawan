@@ -117,6 +117,10 @@
                 <a href="{{ route('admin.laporan.index') }}" class="flex items-center p-3 rounded-xl {{ request()->routeIs('admin.laporan.*') ? 'bg-indigo-600' : 'hover:bg-indigo-900' }}">
                     <i class="fas fa-file-signature w-6"></i> <span class="ml-3 font-bold text-sm sidebar-text uppercase">Laporan Absensi</span>
                 </a>
+                <a href="{{ route('admin.presensi.manual') }}" class="flex items-center p-3 rounded-xl transition {{ request()->routeIs('admin.presensi.manual') ? 'bg-indigo-600' : 'hover:bg-indigo-900' }}">
+                    <i class="fas fa-edit w-6 text-center text-amber-400"></i>
+                    <span class="ml-3 font-bold text-sm uppercase">Absensi Manual</span>
+                </a>
             </nav>
         </aside>
 
@@ -152,7 +156,7 @@
                             <i class="fas fa-user-cog w-5 text-indigo-500 text-center"></i>
                             <span class="ml-3 font-bold text-xs uppercase">Setting Profil</span>
                         </a>
-                         <form method="POST" action="{{ route('logout') }}" id="logout-form">
+                        <form method="POST" action="{{ route('logout') }}" id="logout-form">
                             @csrf
                             <button type="submit" class="flex items-center w-full px-5 py-4 text-sm text-red-600 hover:bg-red-50 transition text-left">
                                 <i class="fas fa-power-off w-5 text-center"></i>

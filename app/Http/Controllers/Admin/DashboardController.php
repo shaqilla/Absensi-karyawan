@@ -5,8 +5,11 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Presensi;
 use App\Models\User;
+use App\Models\Karyawan;
+use App\Models\JadwalKerja;
 use App\Models\Pengajuan;
 use Illuminate\Http\Request;
+use Carbon\Carbon;
 
 class DashboardController extends Controller
 {
@@ -16,7 +19,7 @@ class DashboardController extends Controller
         date_default_timezone_set('Asia/Jakarta');
 
         $hariIni = now()->toDateString();
-        $waktuSekarang = now(); // Objek Carbon waktu saat ini
+        $waktuSekarang = now();
 
         $hariInggris = now()->format('l');
         $mappingHari = [
@@ -31,22 +34,22 @@ class DashboardController extends Controller
         $hariNama = $mappingHari[$hariInggris];
 
         // 1. Total Karyawan Aktif
-        $totalKaryawan = \App\Models\Karyawan::count();
+        $totalKaryawan = Karyawan::count();
 
-        // 2. Hitung yang sudah hadir (Status 'hadir' atau 'telat')
-        $hadirHariIni = \App\Models\Presensi::where('tanggal', $hariIni)
+        // 2. HITUNG HADIR (Hanya yang TEPAT WAKTU)
+        $hadirHariIni = Presensi::where('tanggal', $hariIni)
+            ->where('status', 'hadir') // Filter status hadir saja
             ->whereHas('user.karyawan')
             ->count();
 
-        // 3. Hitung yang Telat
-        $telatHariIni = \App\Models\Presensi::where('tanggal', $hariIni)
-            ->where('status', 'telat')
+        // 3. HITUNG TERLAMBAT (Hanya yang TELAT)
+        $telatHariIni = Presensi::where('tanggal', $hariIni)
+            ->where('status', 'telat') // Filter status telat saja
             ->whereHas('user.karyawan')
             ->count();
 
-        // 4. LOGIKA FINAL "TIDAK HADIR" (ALPHA) - SUPER KETAT
-        // Ambil semua jadwal yang harusnya masuk hari ini
-        $semuaJadwal = \App\Models\JadwalKerja::with('shift')
+        // 4. LOGIKA FINAL "TIDAK HADIR" (ALPHA) - DINAMIS & KETAT
+        $semuaJadwal = JadwalKerja::with('shift')
             ->where('hari', $hariNama)
             ->where('status', 'aktif')
             ->get();
@@ -54,20 +57,25 @@ class DashboardController extends Controller
         $tidakHadir = 0;
 
         foreach ($semuaJadwal as $j) {
-            // Cek apakah orang ini sudah absen (masuk ke tabel presensi)
-            $absenExist = \App\Models\Presensi::where('user_id', $j->user_id)
+            // Cek apakah karyawan ini sudah ada data absennya (baik hadir maupun telat)
+            $absenExist = Presensi::where('user_id', $j->user_id)
                 ->where('tanggal', $hariIni)
                 ->exists();
 
-            // JIKA BELUM ABSEN
-            if (!$absenExist) {
-                // Gabungkan Tanggal + Jam Masuk Shift + Toleransi
-                // Contoh: 2024-05-20 + 08:00:00 + 15 menit = 2024-05-20 08:15:00
-                $batasMasuk = \Carbon\Carbon::parse($hariIni . ' ' . $j->shift->jam_masuk)
+            // Cek apakah dia punya izin/sakit yang sudah disetujui (biar tidak dihitung alpha)
+            $isIzin = Pengajuan::where('user_id', $j->user_id)
+                ->where('status_approval', 'disetujui')
+                ->whereDate('tanggal_mulai', '<=', $hariIni)
+                ->whereDate('tanggal_selesai', '>=', $hariIni)
+                ->exists();
+
+            // JIKA BELUM ABSEN & TIDAK IZIN
+            if (!$absenExist && !$isIzin) {
+                // Batas Masuk = Jam Masuk Shift + Toleransi
+                $batasMasuk = Carbon::parse($hariIni . ' ' . $j->shift->jam_masuk)
                     ->addMinutes($j->shift->toleransi_telat);
 
-                // LOGIKA: Dia hanya dihitung TIDAK HADIR jika jam sekarang SUDAH MELEWATI batas masuknya.
-                // Jika sekarang jam 05:00 dan jadwal dia jam 06:00, maka dia TIDAK dihitung bolos.
+                // Baru dihitung TIDAK HADIR jika jam sekarang sudah MELEWATI batas masuknya
                 if ($waktuSekarang->greaterThan($batasMasuk)) {
                     $tidakHadir++;
                 }
@@ -75,7 +83,7 @@ class DashboardController extends Controller
         }
 
         // 5. Tabel Aktivitas Terbaru
-        $presensiTerbaru = \App\Models\Presensi::whereHas('user.karyawan')
+        $presensiTerbaru = Presensi::whereHas('user.karyawan')
             ->with(['user.karyawan.departemen', 'shift'])
             ->where('tanggal', $hariIni)
             ->orderBy('created_at', 'desc')
@@ -93,8 +101,7 @@ class DashboardController extends Controller
 
     public function profil()
     {
-        // Admin biasanya tetap ada di tabel User & Karyawan
-        $user = \App\Models\User::with(['karyawan.departemen'])->findOrFail(auth()->id());
+        $user = User::with(['karyawan.departemen'])->findOrFail(auth()->id());
         return view('admin.profil', compact('user'));
     }
 }

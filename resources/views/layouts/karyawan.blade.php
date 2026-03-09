@@ -85,6 +85,11 @@
                     <span class="ml-3 font-bold text-sm uppercase">Jadwal Kerja Saya</span>
                 </a>
 
+                <a href="{{ route('karyawan.laporan.index') }}" class="flex items-center p-3 rounded-xl transition {{ request()->routeIs('karyawan.laporan.*') ? 'bg-indigo-600 shadow-lg text-white' : 'text-indigo-200 hover:bg-indigo-900 hover:text-white' }}">
+                    <i class="fas fa-file-alt w-6 text-center"></i>
+                    <span class="ml-3 font-bold text-sm uppercase">Laporan Saya</span>
+                </a>
+
                 <p class="px-4 text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em] mt-6 mb-2">Layanan</p>
 
                 <a href="{{ route('karyawan.izin.index') }}" class="flex items-center p-3 rounded-xl transition {{ request()->routeIs('karyawan.izin.*') ? 'bg-indigo-600 shadow-lg text-white' : 'text-indigo-200 hover:bg-indigo-900 hover:text-white' }}">

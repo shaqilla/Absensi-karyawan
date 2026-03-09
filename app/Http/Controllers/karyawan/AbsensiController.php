@@ -31,7 +31,7 @@ class AbsensiController extends Controller
         $hariIniTanggal = now()->toDateString();
         $waktuSekarang = now();
 
-        // 1. Ambil Nama Hari
+        // 1. Mapping Hari
         $hariInggris = now()->format('l');
         $daftarHari = ['Monday' => 'senin', 'Tuesday' => 'selasa', 'Wednesday' => 'rabu', 'Thursday' => 'kamis', 'Friday' => 'jumat', 'Saturday' => 'sabtu', 'Sunday' => 'minggu'];
         $namaHariIni = $daftarHari[$hariInggris];
@@ -53,19 +53,25 @@ class AbsensiController extends Controller
             return response()->json(['success' => false, 'message' => 'Gagal! Di luar radius kantor.'], 403);
         }
 
-        // 4. KUNCI JAM SHIFT
+        // 4. Cek Token QR
+        $qr = QrSession::where('token', $request->token)->where('is_active', true)->where('expired_at', '>', now())->first();
+        if (!$qr) {
+            return response()->json(['success' => false, 'message' => 'QR Code Kadaluwarsa!'], 403);
+        }
+
+        // 5. KUNCI JAM SHIFT
         $jamMasukShift = Carbon::parse($hariIniTanggal . ' ' . $jadwal->shift->jam_masuk);
-        $batasMasuk = $jamMasukShift->copy()->addMinutes($jadwal->shift->toleransi_telat);
+        $batasToleransi = $jamMasukShift->copy()->addMinutes($jadwal->shift->toleransi_telat);
         $jamPulangShift = Carbon::parse($hariIniTanggal . ' ' . $jadwal->shift->jam_keluar);
 
         $presensi = Presensi::where('user_id', $userId)->where('tanggal', $hariIniTanggal)->first();
 
         if (!$presensi) {
+            // ============================
+            // --- LOGIKA ABSEN MASUK ---
+            // ============================
 
-            // ---ABSEN MASUK ---
-
-
-            // JIKA SHIFT BELUM DIMULAI
+            // A. JIKA BELUM WAKTUNYA MASUK
             if ($waktuSekarang->lt($jamMasukShift)) {
                 return response()->json([
                     'success' => false,
@@ -73,36 +79,46 @@ class AbsensiController extends Controller
                 ], 422);
             }
 
-            // JIKA SUDAH LEWAT TOLERANSI (ALPHA)
-            if ($waktuSekarang->gt($batasMasuk)) {
+            // B. JIKA SUDAH MELEWATI BATAS TOLERANSI (Misal lewat dari 08:05) -> JADI ALPHA
+            if ($waktuSekarang->gt($batasToleransi)) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Gak bisa absen! Kamu udah melewati batas waktu (Alpha).'
+                    'message' => 'Gak bisa absen! Kamu udah melebihi batas waktu jam kerja (Kamu tidak masuk kerja).'
                 ], 422);
             }
 
-            // SIMPAN ABSEN DENGAN MENGUNCI ID SHIFT (REVISI GURU)
+            // C. PENENTUAN STATUS (HADIR vs TELAT)
+            // Jika jam 08:00:00 atau sebelumnya -> hadir
+            // Jika jam 08:00:01 s/d 08:05:00 -> telat
+            if ($waktuSekarang->lte($jamMasukShift)) {
+                $status = 'hadir';
+                $msg = 'Berhasil absen masuk tepat waktu! Selamat bekerja.';
+            } else {
+                $status = 'telat';
+                $msg = 'Berhasil absen, tapi Anda tercatat TERLAMBAT!';
+            }
+
             Presensi::create([
                 'user_id' => $userId,
-                'qr_session_id' => QrSession::where('token', $request->token)->first()->id ?? null,
-                'shift_id' => $jadwal->shift_id, // <--- INI KUNCI SNAPSHOTNYA
+                'qr_session_id' => $qr->id,
+                'shift_id' => $jadwal->shift_id,
                 'tanggal' => $hariIniTanggal,
                 'jam_masuk' => $waktuSekarang,
                 'latitude' => $request->lat,
                 'longitude' => $request->lng,
-                'status' => 'hadir',
+                'status' => $status,
                 'kategori_id' => 1
             ]);
-            return response()->json(['success' => true, 'message' => 'Berhasil absen masuk!']);
+
+            return response()->json(['success' => true, 'message' => $msg]);
         } else {
             // ============================
             // --- LOGIKA ABSEN PULANG ---
-
+            // ============================
             if ($presensi->jam_keluar != null) {
                 return response()->json(['success' => false, 'message' => 'Udah absen pulang!'], 422);
             }
 
-            // CEK APAKAH SUDAH WAKTUNYA PULANG
             if ($waktuSekarang->lt($jamPulangShift)) {
                 $menit = $waktuSekarang->diffInMinutes($jamPulangShift);
                 return response()->json([
