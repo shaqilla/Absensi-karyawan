@@ -7,9 +7,7 @@ use Illuminate\Support\Facades\DB;
 
 return new class extends Migration
 {
-    /**
-     * Jalankan Perubahan
-     */
+    // Jalankan Perubahan
     public function up(): void
     {
         // 1. Cek apakah kolom sudah ada di tabel 'pengajuans'
