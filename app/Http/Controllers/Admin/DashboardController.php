@@ -20,6 +20,8 @@ class DashboardController extends Controller
 
         $hariIni = now()->toDateString();
         $waktuSekarang = now();
+        $bulanIni = now()->month;
+        $tahunIni = now()->year;
 
         $hariInggris = now()->format('l');
         $mappingHari = [
@@ -33,22 +35,20 @@ class DashboardController extends Controller
         ];
         $hariNama = $mappingHari[$hariInggris];
 
-        // 1. Total Karyawan Aktif
+        // 1. STATISTIK HARI INI
         $totalKaryawan = Karyawan::count();
 
-        // 2. HITUNG HADIR (Hanya yang TEPAT WAKTU)
         $hadirHariIni = Presensi::where('tanggal', $hariIni)
-            ->where('status', 'hadir') // Filter status hadir saja
+            ->where('status', 'hadir')
             ->whereHas('user.karyawan')
             ->count();
 
-        // 3. HITUNG TERLAMBAT (Hanya yang TELAT)
         $telatHariIni = Presensi::where('tanggal', $hariIni)
-            ->where('status', 'telat') // Filter status telat saja
+            ->where('status', 'telat')
             ->whereHas('user.karyawan')
             ->count();
 
-        // 4. LOGIKA FINAL "TIDAK HADIR" (ALPHA) - DINAMIS & KETAT
+        // 2. LOGIKA "TIDAK HADIR" (ALPHA) HARI INI
         $semuaJadwal = JadwalKerja::with('shift')
             ->where('hari', $hariNama)
             ->where('status', 'aktif')
@@ -57,32 +57,44 @@ class DashboardController extends Controller
         $tidakHadir = 0;
 
         foreach ($semuaJadwal as $j) {
-            // Cek apakah karyawan ini sudah ada data absennya (baik hadir maupun telat)
             $absenExist = Presensi::where('user_id', $j->user_id)
                 ->where('tanggal', $hariIni)
                 ->exists();
 
-            // Cek apakah dia punya izin/sakit yang sudah disetujui (biar tidak dihitung alpha)
             $isIzin = Pengajuan::where('user_id', $j->user_id)
                 ->where('status_approval', 'disetujui')
                 ->whereDate('tanggal_mulai', '<=', $hariIni)
                 ->whereDate('tanggal_selesai', '>=', $hariIni)
                 ->exists();
 
-            // JIKA BELUM ABSEN & TIDAK IZIN
             if (!$absenExist && !$isIzin) {
-                // Batas Masuk = Jam Masuk Shift + Toleransi
                 $batasMasuk = Carbon::parse($hariIni . ' ' . $j->shift->jam_masuk)
                     ->addMinutes($j->shift->toleransi_telat);
 
-                // Baru dihitung TIDAK HADIR jika jam sekarang sudah MELEWATI batas masuknya
                 if ($waktuSekarang->greaterThan($batasMasuk)) {
                     $tidakHadir++;
                 }
             }
         }
 
-        // 5. Tabel Aktivitas Terbaru
+        // 3. REKAPITULASI BULAN INI (REVISI GURU)
+        // Menghitung total data akumulasi selama sebulan ini
+        $rekapBulanan = [
+            'hadir' => Presensi::whereMonth('tanggal', $bulanIni)
+                ->whereYear('tanggal', $tahunIni)
+                ->where('status', 'hadir')
+                ->count(),
+            'telat' => Presensi::whereMonth('tanggal', $bulanIni)
+                ->whereYear('tanggal', $tahunIni)
+                ->where('status', 'telat')
+                ->count(),
+            'izin'  => Pengajuan::whereMonth('tanggal_mulai', $bulanIni)
+                ->whereYear('tanggal_mulai', $tahunIni)
+                ->where('status_approval', 'disetujui')
+                ->count(),
+        ];
+
+        // 4. Tabel Aktivitas Terbaru
         $presensiTerbaru = Presensi::whereHas('user.karyawan')
             ->with(['user.karyawan.departemen', 'shift'])
             ->where('tanggal', $hariIni)
@@ -95,7 +107,8 @@ class DashboardController extends Controller
             'hadirHariIni',
             'telatHariIni',
             'tidakHadir',
-            'presensiTerbaru'
+            'presensiTerbaru',
+            'rekapBulanan' // Kirim data rekap ke view
         ));
     }
 

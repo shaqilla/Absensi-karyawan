@@ -15,12 +15,7 @@ use App\Http\Controllers\Admin\LokasiKantorController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
-
-/*
-|--------------------------------------------------------------------------
-| Web Routes - ZENCLOCK FINAL
-|--------------------------------------------------------------------------
-*/
+// | Web Routes - ZENCLOCK FINAL
 
 // 1. REDIRECT HALAMAN DEPAN
 Route::get('/', function () {
@@ -86,6 +81,7 @@ Route::middleware('auth')->group(function () {
 
         // LAPORAN & CETAK PDF (DIPISAH AGAR TIDAK RUSAK)
         Route::get('/laporan', [LaporanController::class, 'index'])->name('admin.laporan.index');
+        Route::get('/laporan/print', [LaporanController::class, 'print'])->name('admin.laporan.print');
 
         // Absen manual
         Route::get('/presensi-manual', [App\Http\Controllers\Admin\PresensiManualController::class, 'create'])->name('admin.presensi.manual');
