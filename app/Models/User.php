@@ -11,7 +11,7 @@ class User extends Authenticatable
     use HasFactory, Notifiable;
 
     protected $fillable = [
-        'nama', 
+        'nama',
         'email',
         'password',
         'role',
@@ -54,5 +54,21 @@ class User extends Authenticatable
     public function pengajuan()
     {
         return $this->hasMany(Pengajuan::class, 'user_id');
+    }
+
+    public function bawahan()
+    {
+        // Mengambil user yang supervisor_id-nya adalah ID user ini
+        return $this->hasMany(Karyawan::class, 'supervisor_id', 'id');
+    }
+
+    public function penilaianDiberikan()
+    {
+        return $this->hasMany(Assessment::class, 'evaluator_id');
+    }
+
+    public function penilaianDiterima()
+    {
+        return $this->hasMany(Assessment::class, 'evaluatee_id');
     }
 }

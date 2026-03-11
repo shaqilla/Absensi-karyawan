@@ -8,9 +8,7 @@ use Illuminate\Http\Request;
 
 class ShiftController extends Controller
 {
-    // =========================================
     // TAMPILKAN SEMUA DATA SHIFT
-    // =========================================
     public function index()
     {
         // Ambil semua data shift dari database
@@ -18,18 +16,14 @@ class ShiftController extends Controller
         return view('admin.shift.index', compact('shifts'));
     }
 
-    // =========================================
     // TAMPILKAN FORM TAMBAH SHIFT BARU
-    // =========================================
     public function create()
     {
         // Tidak perlu ambil data apapun, langsung tampilkan form kosong
         return view('admin.shift.create');
     }
 
-    // =========================================
     // SIMPAN SHIFT BARU KE DATABASE
-    // =========================================
     public function store(Request $request)
     {
         // Validasi semua input dari form
@@ -51,9 +45,7 @@ class ShiftController extends Controller
         return redirect()->route('admin.shift.index')->with('success', 'Shift baru berhasil disimpan!');
     }
 
-    // =========================================
     // HAPUS SHIFT DARI DATABASE
-    // =========================================
     public function destroy($id)
     {
         // Cari shift yang akan dihapus, kalau tidak ada → error 404

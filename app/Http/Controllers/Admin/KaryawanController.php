@@ -7,177 +7,142 @@ use App\Models\User;
 use App\Models\Karyawan;
 use App\Models\Departemen;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;   // Untuk enkripsi password
-use Illuminate\Support\Facades\DB;     // Untuk transaksi database
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\DB;
 
 class KaryawanController extends Controller
 {
-    // =========================================
     // 1. TAMPILKAN SEMUA DATA KARYAWAN
-    // =========================================
     public function index(Request $request)
     {
-        // Ambil filter departemen dari URL (kalau ada)
-        // Contoh: /karyawan?departemen_id=2
         $departemenId = $request->departemen_id;
-
-        // Ambil semua departemen untuk pilihan filter dropdown
         $departemens = Departemen::all();
 
-        // Query dasar: ambil semua karyawan beserta relasi user & departemen
-        $query = Karyawan::with(['user', 'departemen']);
+        // Ditambahkan relasi 'supervisor' agar di tabel kelihatan siapa atasannya
+        $query = Karyawan::with(['user', 'departemen', 'supervisor']);
 
-        // Kalau ada filter departemen, tambahkan kondisi where
         if ($departemenId) {
             $query->where('departemen_id', $departemenId);
         }
 
-        // Eksekusi query dan simpan hasilnya
         $karyawans = $query->get();
-
-        // Hitung total data yang ditampilkan (setelah filter)
         $totalFiltered = $karyawans->count();
-
         $title = "Data Karyawan & Admin";
 
         return view('admin.karyawan.index', compact('karyawans', 'departemens', 'totalFiltered', 'title'));
     }
 
-    // =========================================
-    // 2. TAMPILKAN FORM TAMBAH KARYAWAN BARU
-    // =========================================
+    // 2. TAMPILKAN FORM TAMBAH KARYAWAN
     public function create()
     {
-        // Ambil semua departemen untuk pilihan dropdown di form
         $departemens = Departemen::all();
-        return view('admin.karyawan.create', compact('departemens'));
+        // REVISI TO: Ambil semua user yang berpotensi jadi penilai (Atasan)
+        $supervisors = User::orderBy('nama', 'asc')->get();
+
+        return view('admin.karyawan.create', compact('departemens', 'supervisors'));
     }
 
-    // =========================================
-    // 3. SIMPAN KARYAWAN BARU KE DATABASE
-    // =========================================
+    // 3. SIMPAN KARYAWAN BARU
     public function store(Request $request)
     {
-        // Validasi semua input dari form
         $request->validate([
             'nama'          => 'required|string|max:255',
-            'email'         => 'required|email|unique:users,email',     // Email tidak boleh duplikat
-            'password'      => 'required|min:6',                        // Password minimal 6 karakter
-            'role'          => 'required|in:admin,karyawan',            // Role hanya boleh admin atau karyawan
-            'nip'           => 'required|unique:karyawans,nip',         // NIP tidak boleh duplikat
+            'email'         => 'required|email|unique:users,email',
+            'password'      => 'required|min:6',
+            'role'          => 'required|in:admin,karyawan',
+            'nip'           => 'required|unique:karyawans,nip',
             'jabatan'       => 'required',
-            'departemen_id' => 'required|exists:departemens,id',        // Departemen harus ada di database
+            'departemen_id' => 'required|exists:departemens,id',
             'alamat'        => 'required|string',
             'jenis_kelamin' => 'required|in:laki-laki,perempuan',
+            'supervisor_id' => 'nullable|exists:users,id', // REVISI TO: Validasi ID Atasan
         ]);
 
-        // Mulai transaksi database
-        // Tujuan: kalau salah satu gagal, semua dibatalkan (tidak ada data nanggung)
         DB::beginTransaction();
         try {
-            // LANGKAH 1: Buat akun login di tabel users
             $user = User::create([
                 'nama'     => $request->nama,
                 'email'    => $request->email,
-                'password' => Hash::make($request->password), // Password dienkripsi dulu sebelum disimpan
+                'password' => Hash::make($request->password),
                 'role'     => $request->role,
             ]);
 
-            // LANGKAH 2: Buat data detail karyawan di tabel karyawans
-            // user_id diambil dari user yang baru dibuat di atas
             Karyawan::create([
                 'user_id'       => $user->id,
                 'nip'           => $request->nip,
                 'jabatan'       => $request->jabatan,
                 'departemen_id' => $request->departemen_id,
-                'tanggal_masuk' => now(),   // Otomatis isi tanggal hari ini
+                'tanggal_masuk' => now(),
                 'alamat'        => $request->alamat,
                 'jenis_kelamin' => $request->jenis_kelamin,
+                'supervisor_id' => $request->supervisor_id, // REVISI TO: Simpan Atasannya
             ]);
 
-            // Kalau semua berhasil → commit (simpan permanen ke database)
             DB::commit();
-
-            return redirect()->route('admin.karyawan.index')->with('success', 'User berhasil ditambahkan!');
-
+            return redirect()->route('admin.karyawan.index')->with('success', 'User & Atasan berhasil disetel!');
         } catch (\Exception $e) {
-            // Kalau ada error → rollback (batalkan semua perubahan)
             DB::rollback();
-            return back()->withInput()->with('error', 'Gagal menyimpan data: ' . $e->getMessage());
+            return back()->withInput()->with('error', 'Gagal: ' . $e->getMessage());
         }
     }
 
-    // =========================================
-    // 4. TAMPILKAN FORM EDIT KARYAWAN
-    // =========================================
+    // 4. TAMPILKAN FORM EDIT
     public function edit($id)
     {
-        // Cari data karyawan beserta user-nya, kalau tidak ada → error 404
         $karyawan = Karyawan::with('user')->findOrFail($id);
-
-        // Ambil semua departemen untuk dropdown
         $departemens = Departemen::all();
+        // REVISI TO: Ambil data penilai untuk dropdown edit
+        $supervisors = User::where('id', '!=', $karyawan->user_id)->get(); // Jangan nilai diri sendiri
 
-        return view('admin.karyawan.edit', compact('karyawan', 'departemens'));
+        return view('admin.karyawan.edit', compact('karyawan', 'departemens', 'supervisors'));
     }
 
-    // =========================================
-    // 5. SIMPAN PERUBAHAN DATA KARYAWAN
-    // =========================================
+    // 5. SIMPAN PERUBAHAN
     public function update(Request $request, $id)
     {
-        // Cari data karyawan dan user terkait
         $karyawan = Karyawan::findOrFail($id);
         $user = User::findOrFail($karyawan->user_id);
 
         $request->validate([
             'nama'          => 'required|string|max:255',
-            // unique:users,email,{$user->id} = boleh pakai email yang sama SELAMA itu emailnya sendiri
             'email'         => 'required|email|unique:users,email,' . $user->id,
-            // Sama seperti email, NIP boleh sama kalau itu NIP-nya sendiri
             'nip'           => 'required|unique:karyawans,nip,' . $karyawan->id,
             'role'          => 'required|in:admin,karyawan',
             'departemen_id' => 'required|exists:departemens,id',
             'jabatan'       => 'required',
             'alamat'        => 'required|string',
             'jenis_kelamin' => 'required|in:laki-laki,perempuan',
+            'supervisor_id' => 'nullable|exists:users,id', // REVISI TO: Validasi Atasan
         ]);
 
         DB::beginTransaction();
         try {
-            // Update data akun login (tabel users)
             $user->nama  = $request->nama;
             $user->email = $request->email;
             $user->role  = $request->role;
-
-            // Password hanya diupdate kalau diisi (kalau kosong, biarkan password lama)
             if ($request->filled('password')) {
                 $user->password = Hash::make($request->password);
             }
             $user->save();
 
-            // Update data detail karyawan (tabel karyawans)
             $karyawan->update([
                 'nip'           => $request->nip,
                 'jabatan'       => $request->jabatan,
                 'departemen_id' => $request->departemen_id,
                 'alamat'        => $request->alamat,
                 'jenis_kelamin' => $request->jenis_kelamin,
+                'supervisor_id' => $request->supervisor_id, // REVISI TO: Update Atasan
             ]);
 
             DB::commit();
-
             return redirect()->route('admin.karyawan.index')->with('success', 'Data berhasil diperbarui!');
-
         } catch (\Exception $e) {
             DB::rollback();
             return back()->withInput()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
         }
     }
 
-    // =========================================
-    // 6. HAPUS KARYAWAN BESERTA SEMUA DATA TERKAIT
-    // =========================================
+    // 6. HAPUS DATA
     public function destroy($id)
     {
         $karyawan = Karyawan::findOrFail($id);
@@ -185,22 +150,24 @@ class KaryawanController extends Controller
 
         DB::beginTransaction();
         try {
-            // Hapus dulu semua data di tabel lain yang berelasi dengan user ini
-            // Wajib dihapus duluan karena ada Foreign Key (kalau tidak → error)
-            \App\Models\Presensi::where('user_id', $user->id)->delete();    // Hapus data presensi
-            \App\Models\JadwalKerja::where('user_id', $user->id)->delete(); // Hapus data jadwal
-            \App\Models\Pengajuan::where('user_id', $user->id)->delete();   // Hapus data pengajuan izin
+            // REVISI TO: Jika admin ini dihapus, bawahan-bawahannya jadi gak punya atasan
+            Karyawan::where('supervisor_id', $user->id)->update(['supervisor_id' => null]);
 
-            // Baru hapus data karyawan dan user-nya
+            \App\Models\Presensi::where('user_id', $user->id)->delete();
+            \App\Models\JadwalKerja::where('user_id', $user->id)->delete();
+            \App\Models\Pengajuan::where('user_id', $user->id)->delete();
+
+            // Hapus data penilaian jika ada
+            \App\Models\Assessment::where('evaluatee_id', $user->id)->orWhere('evaluator_id', $user->id)->delete();
+
             $karyawan->delete();
             $user->delete();
 
             DB::commit();
             return redirect()->route('admin.karyawan.index')->with('success', 'Data berhasil dihapus total!');
-
         } catch (\Exception $e) {
             DB::rollback();
-            return back()->with('error', 'Gagal menghapus: ' . $e->getMessage());
+            return back()->with('error', 'Gagal: ' . $e->getMessage());
         }
     }
 }

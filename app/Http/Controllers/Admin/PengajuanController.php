@@ -9,9 +9,9 @@ use Illuminate\Support\Facades\Auth;
 
 class PengajuanController extends Controller
 {
-    // =========================================
+
     // TAMPILKAN SEMUA PENGAJUAN IZIN/SAKIT/CUTI
-    // =========================================
+
     public function index(Request $request)
     {
         // Ambil input filter dari URL kalau ada
@@ -38,7 +38,7 @@ class PengajuanController extends Controller
             $query->where('status_approval', $status);
         }
 
-        // ⚠️ CATATAN: Baris di bawah ini tidak menggunakan $query yang sudah difilter
+        // CATATAN: Baris di bawah ini tidak menggunakan $query yang sudah difilter
         // Harusnya pakai: $pengajuans = $query->orderBy('created_at', 'desc')->get();
         // Tapi kode sekarang membuat query baru tanpa filter → search & status belum berfungsi
         $pengajuans = Pengajuan::with(['karyawan.karyawan'])
@@ -48,9 +48,9 @@ class PengajuanController extends Controller
         return view('admin.pengajuan.index', compact('pengajuans'));
     }
 
-    // =========================================
+
     // UPDATE STATUS PENGAJUAN (APPROVE / TOLAK)
-    // =========================================
+
     public function updateStatus(Request $request, $id)
     {
         // Cari pengajuan berdasarkan ID, kalau tidak ada → error 404

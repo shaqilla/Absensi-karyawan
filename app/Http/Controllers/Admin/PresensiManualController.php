@@ -11,9 +11,7 @@ use Illuminate\Support\Facades\Auth;
 
 class PresensiManualController extends Controller
 {
-    // =========================================
     // TAMPILKAN FORM INPUT ABSENSI MANUAL
-    // =========================================
     public function create()
     {
         // Ambil semua user yang rolenya karyawan untuk pilihan dropdown
@@ -25,9 +23,7 @@ class PresensiManualController extends Controller
         return view('admin.presensi.manual', compact('karyawans', 'shifts'));
     }
 
-    // =========================================
     // SIMPAN ABSENSI MANUAL KE DATABASE
-    // =========================================
     public function store(Request $request)
     {
         // Validasi semua input dari form

@@ -9,23 +9,58 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
-        body, html { height: 100%; margin: 0; overflow: hidden; }
-        .dropdown-menu { display: none; }
-        .dropdown-menu.show { display: block; }
+        body,
+        html {
+            height: 100%;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        .dropdown-menu {
+            display: none;
+        }
+
+        .dropdown-menu.show {
+            display: block;
+        }
 
         /* Animasi Sidebar */
-        #sidebar { transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s ease-in-out; }
-        .sidebar-text { transition: opacity 0.2s; white-space: nowrap; }
+        #sidebar {
+            transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s ease-in-out;
+        }
+
+        .sidebar-text {
+            transition: opacity 0.2s;
+            white-space: nowrap;
+        }
 
         /* CSS Saat Sidebar Mengecil (Desktop) */
-        .sidebar-collapsed { width: 5rem !important; }
-        .sidebar-collapsed .sidebar-text { display: none !important; }
-        .sidebar-collapsed nav p { display: none !important; }
-        .sidebar-collapsed .sidebar-header { justify-content: center !important; padding: 1.5rem 0 !important; }
+        .sidebar-collapsed {
+            width: 5rem !important;
+        }
+
+        .sidebar-collapsed .sidebar-text {
+            display: none !important;
+        }
+
+        .sidebar-collapsed nav p {
+            display: none !important;
+        }
+
+        .sidebar-collapsed .sidebar-header {
+            justify-content: center !important;
+            padding: 1.5rem 0 !important;
+        }
 
         /* Scrollbar rapi */
-        ::-webkit-scrollbar { width: 4px; }
-        ::-webkit-scrollbar-thumb { background: #4f46e5; border-radius: 10px; }
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #4f46e5;
+            border-radius: 10px;
+        }
     </style>
 </head>
 
@@ -52,35 +87,40 @@
             <nav class="flex-1 p-4 space-y-2 mt-4 overflow-y-auto no-scrollbar">
                 <p class="px-4 text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-2 sidebar-text">Utama</p>
                 <a href="{{ route('admin.dashboard') }}" class="flex items-center p-3 rounded-xl transition {{ request()->routeIs('admin.dashboard') ? 'bg-indigo-600 shadow-lg text-white' : 'text-indigo-200 hover:bg-indigo-900 hover:text-white' }}">
-                    <i class="fas fa-chart-line w-6 text-center"></i> 
+                    <i class="fas fa-chart-line w-6 text-center"></i>
                     <span class="ml-3 font-bold text-sm sidebar-text uppercase">Dashboard</span>
                 </a>
 
                 <p class="px-4 text-[10px] font-black text-indigo-400 uppercase tracking-widest mt-6 mb-2 sidebar-text">Manajemen</p>
                 <a href="{{ route('admin.karyawan.index') }}" class="flex items-center p-3 rounded-xl transition {{ request()->routeIs('admin.karyawan.*') ? 'bg-indigo-600 shadow-lg text-white' : 'text-indigo-200 hover:bg-indigo-900 hover:text-white' }}">
-                    <i class="fas fa-users w-6 text-center"></i> 
+                    <i class="fas fa-users w-6 text-center"></i>
                     <span class="ml-3 font-bold text-sm sidebar-text uppercase tracking-tighter">Data Karyawan</span>
                 </a>
                 <a href="{{ route('admin.shift.index') }}" class="flex items-center p-3 rounded-xl transition {{ request()->routeIs('admin.shift.*') ? 'bg-indigo-600 shadow-lg text-white' : 'text-indigo-200 hover:bg-indigo-900 hover:text-white' }}">
-                    <i class="fas fa-clock w-6 text-center"></i> 
+                    <i class="fas fa-clock w-6 text-center"></i>
                     <span class="ml-3 font-bold text-sm sidebar-text uppercase tracking-tighter">Shift Kerja</span>
                 </a>
                 <a href="{{ route('admin.jadwal.index') }}" class="flex items-center p-3 rounded-xl transition {{ request()->routeIs('admin.jadwal.*') ? 'bg-indigo-600 shadow-lg text-white' : 'text-indigo-200 hover:bg-indigo-900 hover:text-white' }}">
-                    <i class="fas fa-calendar-alt w-6 text-center"></i> 
+                    <i class="fas fa-calendar-alt w-6 text-center"></i>
                     <span class="ml-3 font-bold text-sm sidebar-text uppercase tracking-tighter">Jadwal Kerja</span>
                 </a>
-                <a href="{{ route('admin.lokasi.index') }}" class="flex items-center p-3 rounded-xl transition {{ request()->routeIs('admin.lokasi.*') ? 'bg-indigo-600 shadow-lg text-white' : 'text-indigo-200 hover:bg-indigo-900 hover:text-white' }}">
-                    <i class="fas fa-map-marked-alt w-6 text-center text-emerald-400"></i> 
-                    <span class="ml-3 font-bold text-sm sidebar-text uppercase tracking-tighter">Lokasi Kantor</span>
+                <p class="px-4 text-[10px] font-black text-indigo-400 uppercase tracking-widest mt-6 mb-2 sidebar-text">Penilaian</p>
+                <a href="{{ route('admin.assessment.employees') }}" class="flex items-center p-3 rounded-xl transition hover:bg-indigo-900 {{ request()->routeIs('admin.assessment.employees') ? 'bg-indigo-600 shadow-lg' : '' }}">
+                    <i class="fas fa-pen-nib w-6 text-center"></i> <span class="ml-3 font-bold text-sm uppercase">Input Penilaian</span>
                 </a>
-
+                <!-- <a href="{{ route('admin.assessment.employees') }}" class="flex items-center p-3 rounded-xl transition hover:bg-indigo-900 {{ request()->routeIs('admin.assessment.employees') ? 'bg-indigo-600 shadow-lg' : '' }}">
+                    <i class="fas fa-pen-nib w-6 text-center"></i> <span class="ml-3 font-bold text-sm uppercase">laporan Penilaian</span>
+                </a>
+                <a href="{{ route('admin.assessment.employees') }}" class="flex items-center p-3 rounded-xl transition hover:bg-indigo-900 {{ request()->routeIs('admin.assessment.employees') ? 'bg-indigo-600 shadow-lg' : '' }}">
+                    <i class="fas fa-pen-nib w-6 text-center"></i> <span class="ml-3 font-bold text-sm uppercase">kategori Penilaian</span>
+                </a> -->
                 <p class="px-4 text-[10px] font-black text-indigo-400 uppercase tracking-widest mt-6 mb-2 sidebar-text">Operasional</p>
                 <a href="{{ route('admin.pengajuan.index') }}" class="flex items-center p-3 rounded-xl transition {{ request()->routeIs('admin.pengajuan.*') ? 'bg-indigo-600 shadow-lg text-white' : 'text-indigo-200 hover:bg-indigo-900 hover:text-white' }}">
-                    <i class="fas fa-envelope-open-text w-6 text-center"></i> 
+                    <i class="fas fa-envelope-open-text w-6 text-center"></i>
                     <span class="ml-3 font-bold text-sm sidebar-text uppercase tracking-tighter">Persetujuan Izin</span>
                 </a>
                 <a href="{{ route('admin.laporan.index') }}" class="flex items-center p-3 rounded-xl transition {{ request()->routeIs('admin.laporan.*') ? 'bg-indigo-600 shadow-lg text-white' : 'text-indigo-200 hover:bg-indigo-900 hover:text-white' }}">
-                    <i class="fas fa-file-signature w-6 text-center"></i> 
+                    <i class="fas fa-file-signature w-6 text-center"></i>
                     <span class="ml-3 font-bold text-sm sidebar-text uppercase tracking-tighter">Laporan Absensi</span>
                 </a>
 
@@ -88,6 +128,12 @@
                 <a href="{{ route('admin.presensi.manual') }}" class="flex items-center p-3 rounded-xl transition {{ request()->routeIs('admin.presensi.manual') ? 'bg-indigo-600 shadow-lg text-white' : 'text-indigo-200 hover:bg-indigo-900 hover:text-white' }}">
                     <i class="fas fa-edit w-6 text-center text-white-400"></i>
                     <span class="ml-3 font-bold text-sm sidebar-text uppercase tracking-tighter">Absensi Manual</span>
+                </a>
+
+                <!-- lokasi kantor -->
+                <a href="{{ route('admin.lokasi.index') }}" class="flex items-center p-3 rounded-xl transition {{ request()->routeIs('admin.lokasi.*') ? 'bg-indigo-600 shadow-lg text-white' : 'text-indigo-200 hover:bg-indigo-900 hover:text-white' }}">
+                    <i class="fas fa-map-marked-alt w-6 text-center text-emerald-400"></i>
+                    <span class="ml-3 font-bold text-sm sidebar-text uppercase tracking-tighter">Lokasi Kantor</span>
                 </a>
             </nav>
         </aside>
@@ -145,7 +191,7 @@
         function toggleSidebar() {
             const sidebar = document.getElementById('sidebar');
             const overlay = document.getElementById('sidebarOverlay');
-            
+
             if (window.innerWidth >= 768) {
                 // Laptop: Kecilkan Sidebar
                 sidebar.classList.toggle('sidebar-collapsed');
@@ -159,7 +205,7 @@
         // PROFILE DROPDOWN
         const btn = document.getElementById('adminDropdownBtn');
         const menu = document.getElementById('adminDropdownMenu');
-        if(btn && menu) {
+        if (btn && menu) {
             btn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 menu.classList.toggle('hidden');
@@ -170,4 +216,5 @@
         }
     </script>
 </body>
+
 </html>

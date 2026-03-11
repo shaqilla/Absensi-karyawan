@@ -10,9 +10,7 @@ use Illuminate\Http\Request;
 
 class JadwalController extends Controller
 {
-    // =========================================
     // MENAMPILKAN SEMUA JADWAL KERJA
-    // =========================================
     public function index()
     {
         // Ambil semua jadwal beserta relasi user (karyawan) dan shift-nya
@@ -23,9 +21,7 @@ class JadwalController extends Controller
         return view('admin.jadwal.index', compact('jadwals'));
     }
 
-    // =========================================
     // TAMPILKAN FORM TAMBAH JADWAL BARU
-    // =========================================
     public function create()
     {
         // Ambil semua user yang rolenya 'karyawan' untuk pilihan dropdown
@@ -41,9 +37,7 @@ class JadwalController extends Controller
         return view('admin.jadwal.create', compact('karyawans', 'shifts', 'hari'));
     }
 
-    // =========================================
     // SIMPAN JADWAL BARU KE DATABASE
-    // =========================================
     public function store(Request $request)
     {
         // Validasi input dari form sebelum disimpan
@@ -76,9 +70,7 @@ class JadwalController extends Controller
         return redirect()->route('admin.jadwal.index')->with('success', 'Jadwal kerja berhasil disetel!');
     }
 
-    // =========================================
     // TAMPILKAN FORM EDIT JADWAL
-    // =========================================
     public function edit($id)
     {
         // Cari jadwal berdasarkan ID, kalau tidak ada otomatis error 404
@@ -97,9 +89,7 @@ class JadwalController extends Controller
         return view('admin.jadwal.edit', compact('jadwal', 'karyawans', 'shifts', 'hari'));
     }
 
-    // =========================================
     // SIMPAN PERUBAHAN JADWAL KE DATABASE
-    // =========================================
     public function update(Request $request, $id)
     {
         // Validasi semua input wajib diisi
@@ -125,9 +115,7 @@ class JadwalController extends Controller
         return redirect()->route('admin.jadwal.index')->with('success', 'Jadwal kerja berhasil diperbarui!');
     }
 
-    // =========================================
     // HAPUS JADWAL
-    // =========================================
     public function destroy($id)
     {
         // Cari jadwal berdasarkan ID lalu langsung hapus

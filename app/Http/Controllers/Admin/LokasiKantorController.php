@@ -8,9 +8,9 @@ use Illuminate\Http\Request;
 
 class LokasiKantorController extends Controller
 {
-    // =========================================
+
     // TAMPILKAN DATA LOKASI KANTOR
-    // =========================================
+
     public function index()
     {
         // Ambil baris pertama saja karena lokasi kantor hanya 1
@@ -20,9 +20,9 @@ class LokasiKantorController extends Controller
         return view('admin.lokasi.index', compact('lokasi'));
     }
 
-    // =========================================
+
     // UPDATE DATA LOKASI KANTOR
-    // =========================================
+
     public function update(Request $request)
     {
         // Validasi semua input wajib diisi

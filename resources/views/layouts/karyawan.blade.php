@@ -96,6 +96,11 @@
                     <i class="fas fa-envelope-open-text w-6 text-center"></i>
                     <span class="ml-3 font-bold text-sm uppercase">Riwayat Izin</span>
                 </a>
+
+                <a href="{{ route('karyawan.rapor') }}" class="flex items-center p-3 rounded-xl transition {{ request()->routeIs('karyawan.rapor') ? 'bg-indigo-600 shadow-lg text-white' : 'text-indigo-200 hover:bg-indigo-800' }}">
+                    <i class="fas fa-chart-pie w-6 text-center"></i>
+                    <span class="ml-3 font-bold text-sm uppercase">Rapor Performa</span>
+                </a>
             </nav>
         </aside>
 

@@ -13,9 +13,7 @@ use Carbon\Carbon;
 
 class KaryawanDashboardController extends Controller
 {
-    // =========================================
     // DASHBOARD UTAMA KARYAWAN
-    // =========================================
     public function index()
     {
         $userId         = Auth::id();
@@ -47,9 +45,9 @@ class KaryawanDashboardController extends Controller
             ->where('tanggal', $hariIniTanggal)
             ->first();
 
-        // =========================================
+
         // LOGIKA STATUS TAMPILAN DASHBOARD
-        // =========================================
+
         $isAlpha   = false; // Penanda karyawan dinyatakan alpha
         $isWaiting = false; // Penanda belum waktunya scan
 
@@ -91,9 +89,7 @@ class KaryawanDashboardController extends Controller
         ));
     }
 
-    // =========================================
     // HALAMAN JADWAL KERJA KARYAWAN
-    // =========================================
     public function jadwal()
     {
         $jadwals = JadwalKerja::with('shift')
@@ -106,9 +102,7 @@ class KaryawanDashboardController extends Controller
         return view('karyawan.jadwal', compact('jadwals'));
     }
 
-    // =========================================
     // HALAMAN PROFIL KARYAWAN
-    // =========================================
     public function profil()
     {
         // Ambil data user yang login beserta detail karyawan dan departemennya
@@ -116,9 +110,7 @@ class KaryawanDashboardController extends Controller
         return view('karyawan.profil', compact('user'));
     }
 
-    // =========================================
     // HALAMAN LAPORAN PRESENSI PRIBADI
-    // =========================================
     public function laporan(Request $request)
     {
         $userId = Auth::id();
@@ -155,5 +147,33 @@ class KaryawanDashboardController extends Controller
         ];
 
         return view('karyawan.laporan', compact('laporans', 'stats', 'bulan', 'tahun'));
+    }
+
+    public function raporSaya()
+    {
+        $userId = Auth::id();
+
+        // 1. Ambil penilaian terbaru untuk saya
+        $penilaian = \App\Models\Assessment::with('details.category')
+            ->where('evaluatee_id', $userId)
+            ->latest()
+            ->first();
+
+        // 2. Jika belum ada nilai, kirim data kosong
+        if (!$penilaian) {
+            return view('karyawan.rapor', ['labels' => [], 'scores' => [], 'notes' => 'Belum ada penilaian.']);
+        }
+
+        // 3. Susun data untuk Grafik Radar
+        $labels = [];
+        $scores = [];
+        foreach ($penilaian->details as $detail) {
+            $labels[] = $detail->category->name;
+            $scores[] = $detail->score;
+        }
+
+        $notes = $penilaian->general_notes;
+
+        return view('karyawan.rapor', compact('labels', 'scores', 'notes'));
     }
 }

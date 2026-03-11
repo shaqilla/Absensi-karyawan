@@ -20,6 +20,7 @@ class Karyawan extends Model
         'tanggal_masuk', // Tanggal pertama masuk kerja
         'alamat',
         'jenis_kelamin',
+        'supervisor_id',
     ];
 
     // RELASI: Karyawan ini milik satu User (akun login)
@@ -35,5 +36,12 @@ class Karyawan extends Model
     public function departemen()
     {
         return $this->belongsTo(Departemen::class, 'departemen_id');
+    }
+
+    // menambahkan relasi untuk menghubungkan ke atasan (supervisor)
+    public function supervisor()
+    {
+        //Supervisor di ambil dari tabel users pake supervisor_id
+        return $this->belongsTo(User::class, 'supervisor_id');
     }
 }

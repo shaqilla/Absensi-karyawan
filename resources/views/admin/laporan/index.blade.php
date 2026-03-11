@@ -751,7 +751,7 @@
         <div class="flex bg-gray-200 p-1 rounded-2xl">
             <a href="{{ route('admin.laporan.index', ['view_type' => 'daily']) }}"
                 class="px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest {{ $view_type == 'daily' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500' }}">Harian</a>
-            <a href="{{ route('admin.laporan.index', ['view_type' => 'monthly', 'year' => $selected_year, 'month' => $selected_month]) }}"
+            <a href="{{ route('admin.laporan.index', ['view_type' => 'monthly', 'year' => $selected_year, 'month' => $selected_month ?? null]) }}"
                 class="px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest {{ $view_type == 'monthly' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500' }}">Bulanan</a>
             <a href="{{ route('admin.laporan.index', ['view_type' => 'annual']) }}"
                 class="px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest {{ $view_type == 'annual' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500' }}">Tahunan</a>

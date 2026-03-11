@@ -9,9 +9,7 @@ use Illuminate\Support\Facades\Auth;
 
 class QrController extends Controller
 {
-    // =========================================
     // GENERATE TOKEN QR BARU UNTUK ABSENSI
-    // =========================================
     public function generate()
     {
         // Dibungkus try-catch supaya kalau ada error tidak crash
