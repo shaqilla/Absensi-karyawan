@@ -9,7 +9,7 @@
         <div class="bg-white p-6 rounded-[2rem] shadow-sm border border-gray-100 flex items-center justify-between">
             <div class="flex items-center">
                 <div class="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center font-bold mr-4">
-                    {{ substr($e->user->nama, 0, 1) }}
+                    {{ substr($e->user?->nama ?? '?', 0, 1) }}
                 </div>
                 <div>
                     <h3 class="font-bold text-sm uppercase leading-none mb-1">{{ $e->user->nama }}</h3>

@@ -2,26 +2,31 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
 class AssessmentCategorySeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
-    public function run()
+    public function run(): void
     {
-        $items = [
-            ['name' => 'Teamwork', 'description' => 'Apakah individu ini dapat diandalkan dan kooperatif dalam tim?'],
-            ['name' => 'Communication', 'description' => 'Apakah dia terbuka dan jelas dalam berkomunikasi?'],
-            ['name' => 'Reliability', 'description' => 'Tingkat kepercayaan dalam menyelesaikan tugas tepat waktu.'],
-            ['name' => 'Initiative', 'description' => 'Kemampuan untuk mengambil langkah tanpa harus menunggu perintah.'],
-            ['name' => 'Professionalism', 'description' => 'Etika kerja, penampilan, dan sikap di lingkungan kantor.'],
+        $categories = [
+            ['name' => 'Teamwork', 'description' => 'Kemampuan bekerja sama dalam tim'],
+            ['name' => 'Komunikasi', 'description' => 'Kemampuan berkomunikasi secara efektif'],
+            ['name' => 'Inisiatif', 'description' => 'Kemampuan mengambil tindakan proaktif'],
+            ['name' => 'Kedisiplinan', 'description' => 'Kepatuhan terhadap aturan dan ketepatan waktu'],
+            ['name' => 'Profesionalisme', 'description' => 'Sikap dan perilaku profesional di tempat kerja'],
         ];
 
-        foreach ($items as $item) {
-            \App\Models\AssessmentCategory::create($item);
+        foreach ($categories as $cat) {
+            DB::table('assessment_categories')->insert([
+                'name' => $cat['name'],
+                'description' => $cat['description'],
+                'type' => 'Employee',
+                'is_active' => true,
+                'created_at' => Carbon::now(),
+                'updated_at' => Carbon::now(),
+            ]);
         }
     }
 }
