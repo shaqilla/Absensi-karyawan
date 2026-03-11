@@ -4,22 +4,24 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Models\Karyawan;
 use App\Models\Assessment;
 use App\Models\AssessmentCategory;
+use App\Models\AssessmentQuestion;
 use App\Models\AssessmentDetail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class AssessmentController extends Controller
 {
-    /**
-     * Menampilkan daftar karyawan yang bisa dinilai
-     */
+    // Menampilkan daftar karyawan yang bisa dinilai
     public function employees()
     {
-        // whereHas('user') = hanya ambil karyawan yang punya user (hindari null)
-        $employees = \App\Models\Karyawan::with(['user', 'departemen'])
-            ->whereHas('user')
+        $employees = Karyawan::with(['user', 'departemen'])
+            ->whereHas('user', function ($q) {
+                $q->where('role', 'karyawan');
+            })
             ->get();
 
         foreach ($employees as $emp) {
@@ -33,9 +35,7 @@ class AssessmentController extends Controller
         return view('admin.assessment.employees', compact('employees'));
     }
 
-    /**
-     * Menampilkan form penilaian
-     */
+    // Menampilkan form penilaian
     public function create($evaluatee_id)
     {
         if (!is_numeric($evaluatee_id)) {
@@ -50,7 +50,6 @@ class AssessmentController extends Controller
                 ->with('error', 'Karyawan tidak ditemukan!');
         }
 
-        // Ambil kategori aktif beserta pertanyaan aktifnya
         $categories = AssessmentCategory::with(['activeQuestions'])
             ->where('is_active', true)
             ->get();
@@ -60,15 +59,15 @@ class AssessmentController extends Controller
                 ->with('error', 'Buat kategori penilaian dulu!');
         }
 
-        // Hitung total pertanyaan untuk progress bar di view
-        $totalQuestions = $categories->sum(fn($c) => $c->activeQuestions->count());
+        $totalQuestions = 0;
+        foreach ($categories as $category) {
+            $totalQuestions += $category->activeQuestions->count();
+        }
 
         return view('admin.assessment.create', compact('target', 'categories', 'totalQuestions'));
     }
 
-    /**
-     * Menyimpan penilaian baru
-     */
+    // Menyimpan penilaian baru
     public function store(Request $request)
     {
         $request->validate([
@@ -81,7 +80,11 @@ class AssessmentController extends Controller
         try {
             DB::beginTransaction();
 
-            // Cek apakah sudah ada penilaian bulan ini
+            \Log::info('Store assessment called', [
+                'evaluatee_id' => $request->evaluatee_id,
+                'scores_count' => count($request->scores)
+            ]);
+
             $existingAssessment = Assessment::where('evaluator_id', auth()->id())
                 ->where('evaluatee_id', $request->evaluatee_id)
                 ->whereMonth('assessment_date', now()->month)
@@ -103,7 +106,9 @@ class AssessmentController extends Controller
                 'general_notes'   => $request->notes,
             ]);
 
-            // Simpan detail penilaian per pertanyaan
+            \Log::info('Assessment created', ['id' => $assessment->id]);
+
+            $detailCount = 0;
             foreach ($request->scores as $question_id => $score) {
                 if (!is_numeric($question_id)) continue;
 
@@ -112,29 +117,31 @@ class AssessmentController extends Controller
                     'question_id'   => $question_id,
                     'score'         => $score,
                 ]);
+                $detailCount++;
             }
 
+            \Log::info('Details created', ['count' => $detailCount]);
+
             DB::commit();
+            \Log::info('Store completed successfully');
 
             if ($request->has('action') && $request->action == 'save_next') {
                 return redirect()->route('admin.assessment.employees')
                     ->with('success', 'Penilaian berhasil disimpan! Silakan pilih karyawan berikutnya.');
             }
 
-            return redirect()->route('admin.assessment.employees')
+            return redirect()->route('admin.assessment.report')
                 ->with('success', 'Penilaian berhasil disimpan!');
-
         } catch (\Exception $e) {
             DB::rollBack();
+            \Log::error('Store failed: ' . $e->getMessage());
             return redirect()->back()
                 ->with('error', 'Terjadi kesalahan: ' . $e->getMessage())
                 ->withInput();
         }
     }
 
-    /**
-     * Menampilkan form edit penilaian
-     */
+    // Menampilkan form edit penilaian
     public function edit($id)
     {
         if (!is_numeric($id)) {
@@ -142,8 +149,7 @@ class AssessmentController extends Controller
                 ->with('error', 'ID penilaian tidak valid!');
         }
 
-        // FIX: pakai relasi 'user' dan 'details.category' sesuai model
-        $assessment = Assessment::with(['user', 'details.category'])->find($id);
+        $assessment = Assessment::with(['evaluatee.karyawan', 'details.question.category'])->find($id);
 
         if (!$assessment) {
             return redirect()->route('admin.assessment.employees')
@@ -155,39 +161,19 @@ class AssessmentController extends Controller
                 ->with('error', 'Anda tidak berhak mengedit penilaian ini!');
         }
 
-        $categories = AssessmentCategory::where('is_active', true)->get();
+        $categories = AssessmentCategory::with('questions')->where('is_active', true)->get();
 
-        // Mapping nilai yang sudah ada: category_id => score
         $existingScores = [];
         foreach ($assessment->details as $detail) {
-            $existingScores[$detail->category_id] = $detail->score;
+            $existingScores[$detail->question_id] = $detail->score;
         }
 
         return view('admin.assessment.edit', compact('assessment', 'categories', 'existingScores'));
     }
 
-    /**
-     * Mengupdate penilaian
-     */
+    // Mengupdate penilaian
     public function update(Request $request, $id)
     {
-        if (!is_numeric($id)) {
-            return redirect()->route('admin.assessment.employees')
-                ->with('error', 'ID penilaian tidak valid!');
-        }
-
-        $assessment = Assessment::find($id);
-
-        if (!$assessment) {
-            return redirect()->route('admin.assessment.employees')
-                ->with('error', 'Data penilaian tidak ditemukan!');
-        }
-
-        if ($assessment->evaluator_id != auth()->id() && auth()->user()->role != 'admin') {
-            return redirect()->route('admin.assessment.employees')
-                ->with('error', 'Anda tidak berhak mengupdate penilaian ini!');
-        }
-
         $request->validate([
             'scores'   => 'required|array',
             'scores.*' => 'required|integer|min:1|max:5',
@@ -196,62 +182,189 @@ class AssessmentController extends Controller
 
         try {
             DB::beginTransaction();
+            $assessment = Assessment::findOrFail($id);
 
             $assessment->update(['general_notes' => $request->notes]);
 
-            foreach ($request->scores as $category_id => $score) {
-                if (!is_numeric($category_id)) continue;
+            foreach ($request->scores as $question_id => $score) {
+                if (!is_numeric($question_id)) continue;
 
                 AssessmentDetail::updateOrCreate(
-                    [
-                        'assessment_id' => $assessment->id,
-                        'category_id'   => $category_id,
-                    ],
+                    ['assessment_id' => $assessment->id, 'question_id' => $question_id],
                     ['score' => $score]
                 );
             }
 
             DB::commit();
-
-            return redirect()->route('admin.assessment.employees')
-                ->with('success', 'Penilaian berhasil diperbarui!');
-
+            return redirect()->route('admin.assessment.report')->with('success', 'Penilaian berhasil diperbarui!');
         } catch (\Exception $e) {
             DB::rollBack();
-            return redirect()->back()
-                ->with('error', 'Terjadi kesalahan: ' . $e->getMessage())
-                ->withInput();
+            return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+        }
+    }
+
+    // Laporan/Rapor - VERSI FIX
+    public function report(Request $request)
+    {
+        if (!auth()->check()) return redirect()->route('login');
+
+        $currentUser = auth()->user();
+
+        // Mulai Query dengan Eager Loading lengkap
+        $query = Assessment::with([
+            'evaluator.karyawan',
+            'evaluatee.karyawan',
+            'details.question.category'
+        ]);
+
+        // FILTER BERDASARKAN ROLE
+        if ($currentUser->role == 'admin') {
+            // Admin: Lihat semua data
+        } elseif ($currentUser->role == 'guru' || $currentUser->role == 'manager' || $currentUser->role == 'penilai') {
+            // Penilai: Lihat orang-orang yang DIA nilai
+            $query->where('evaluator_id', $currentUser->id);
+        } else {
+            // Karyawan/Siswa: Lihat nilai MILIKNYA sendiri
+            $query->where('evaluatee_id', $currentUser->id);
+        }
+
+        if ($request->filled('period')) {
+            $query->where('period', $request->period);
+        }
+
+        $assessments = $query->orderBy('assessment_date', 'desc')->get();
+
+        // Ambil periode unik untuk filter dropdown
+        $periods = Assessment::distinct()->orderBy('period', 'desc')->pluck('period')->filter();
+
+        // Hitung Statistik Radar Chart
+        $allScores = $assessments->flatMap->details->pluck('score');
+        $stats = [
+            'total_assessments' => $assessments->count(),
+            'total_employees' => $assessments->pluck('evaluatee_id')->unique()->count(),
+            'average_all' => $allScores->isNotEmpty() ? round($allScores->avg(), 2) : 0,
+        ];
+
+        $categoryTotals = [];
+        foreach ($assessments as $assessment) {
+            foreach ($assessment->details as $detail) {
+                if ($detail->question && $detail->question->category) {
+                    $catName = $detail->question->category->name;
+                    if (!isset($categoryTotals[$catName])) {
+                        $categoryTotals[$catName] = ['total' => 0, 'count' => 0];
+                    }
+                    $categoryTotals[$catName]['total'] += $detail->score;
+                    $categoryTotals[$catName]['count']++;
+                }
+            }
+        }
+
+        $avgPerCategory = [];
+        foreach ($categoryTotals as $cat => $data) {
+            $avgPerCategory[] = [
+                'category' => $cat,
+                'average' => round($data['total'] / $data['count'], 2),
+                'total' => $data['count']
+            ];
+        }
+        usort($avgPerCategory, fn($a, $b) => strcmp($a['category'], $b['category']));
+
+        return view('admin.assessment.report', compact('assessments', 'stats', 'avgPerCategory', 'periods'));
+    }
+
+    // Detail Penilaian
+    public function detail($id)
+    {
+        $assessment = Assessment::with([
+            'evaluator.karyawan',
+            'evaluatee.karyawan',
+            'details.question.category'
+        ])->findOrFail($id);
+
+        if (auth()->user()->role != 'admin' && auth()->id() != $assessment->evaluator_id && auth()->id() != $assessment->evaluatee_id) {
+            return redirect()->back()->with('error', 'Akses ditolak!');
+        }
+
+        return view('admin.assessment.detail', compact('assessment'));
+    }
+
+    // Riwayat Penilaian
+    public function history(Request $request)
+    {
+        $query = Assessment::with(['evaluator.karyawan', 'evaluatee.karyawan', 'details'])
+            ->orderBy('assessment_date', 'desc');
+
+        if ($request->filled('search')) {
+            $query->whereHas('evaluatee', function ($q) use ($request) {
+                $q->where('name', 'LIKE', "%{$request->search}%");
+            });
+        }
+
+        $periods = Assessment::distinct()->pluck('period');
+        $assessments = $query->paginate(15)->withQueryString();
+
+        return view('admin.assessment.history', compact('assessments', 'periods'));
+    }
+
+    // Hapus Penilaian
+    public function destroy($id)
+    {
+        if (auth()->user()->role != 'admin') return redirect()->back()->with('error', 'Hanya Admin!');
+
+        try {
+            DB::beginTransaction();
+            $assessment = Assessment::findOrFail($id);
+            $assessment->details()->delete();
+            $assessment->delete();
+            DB::commit();
+            return redirect()->back()->with('success', 'Berhasil dihapus!');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()->back()->with('error', 'Gagal: ' . $e->getMessage());
         }
     }
 
     /**
-     * Menampilkan laporan/rapor penilaian
+     * Menampilkan rapor untuk karyawan (nilai sendiri)
      */
-    public function report(Request $request, $user_id = null)
+    public function myReport(Request $request)
     {
-        $targetId = $user_id ?? auth()->id();
-
-        if (!is_numeric($targetId)) {
-            return redirect()->route('admin.assessment.employees')
-                ->with('error', 'ID user tidak valid!');
+        if (!auth()->check()) {
+            return redirect()->route('login');
         }
 
-        $user = User::find($targetId);
+        $currentUser = auth()->user();
 
-        if (!$user) {
-            return redirect()->route('admin.assessment.employees')
-                ->with('error', 'User tidak ditemukan!');
+        // Pastikan hanya karyawan yang bisa akses (atau admin melihat preview)
+        if ($currentUser->role != 'karyawan' && $currentUser->role != 'admin') {
+            return redirect()->route('dashboard')
+                ->with('error', 'Anda tidak berhak mengakses halaman ini!');
         }
 
-        // Ambil semua periode untuk filter dropdown
+        // Jika admin, bisa pilih karyawan (tambahan)
+        $targetId = $currentUser->role == 'admin' && request('user_id')
+            ? request('user_id')
+            : $currentUser->id;
+
+        $targetUser = User::with('karyawan')->find($targetId);
+
+        if (!$targetUser) {
+            return redirect()->back()->with('error', 'User tidak ditemukan!');
+        }
+
+        // Ambil periode untuk filter
         $periods = Assessment::where('evaluatee_id', $targetId)
             ->select('period')
             ->distinct()
             ->orderBy('period', 'desc')
-            ->pluck('period');
+            ->pluck('period')
+            ->filter();
 
-        // Query dengan filter periode
-        $query = Assessment::with(['details.category'])
+        // Ambil semua penilaian untuk user ini
+        $query = Assessment::with([
+            'evaluator.karyawan',
+            'details.question.category'
+        ])
             ->where('evaluatee_id', $targetId)
             ->orderBy('assessment_date', 'desc');
 
@@ -261,73 +374,71 @@ class AssessmentController extends Controller
 
         $assessments = $query->get();
 
-        // Statistik
+        // Hitung statistik
+        $allScores = $assessments->flatMap->details->pluck('score');
+
         $stats = [
             'total_assessments' => $assessments->count(),
-            'latest_score'      => $assessments->isNotEmpty()
-                ? round($assessments->first()->details->avg('score'), 2) : 0,
-            'average_all'       => $assessments->isNotEmpty()
-                ? round($assessments->flatMap->details->avg('score'), 2) : 0,
+            'average_all' => $allScores->isNotEmpty() ? round($allScores->avg(), 2) : 0,
+            'latest_score' => $assessments->isNotEmpty()
+                ? round($assessments->first()->details->avg('score'), 2)
+                : 0,
         ];
 
-        // Data untuk radar chart: rata-rata per kategori
-        $radarData = $assessments
-            ->flatMap(fn($a) => $a->details)
-            ->groupBy(fn($d) => $d->category->name ?? 'Unknown')
-            ->map(fn($details, $name) => [
-                'name'    => $name,
-                'average' => round($details->avg('score'), 2),
-            ])
-            ->values();
+        // Hitung rata-rata per kategori
+        $categoryTotals = [];
+        $feedbackList = [];
 
-        return view('admin.assessment.report', compact(
-            'user', 'assessments', 'stats', 'radarData', 'periods'
+        foreach ($assessments as $assessment) {
+            // Kumpulkan feedback
+            if ($assessment->general_notes && $assessment->general_notes != '-') {
+                $feedbackList[] = [
+                    'date' => $assessment->assessment_date->format('d M Y'),
+                    'period' => $assessment->period,
+                    'evaluator' => $assessment->evaluator->nama ?? 'Admin',
+                    'notes' => $assessment->general_notes
+                ];
+            }
+
+            // Hitung per kategori
+            foreach ($assessment->details as $detail) {
+                if ($detail->question && $detail->question->category) {
+                    $catName = $detail->question->category->name;
+                    if (!isset($categoryTotals[$catName])) {
+                        $categoryTotals[$catName] = ['total' => 0, 'count' => 0];
+                    }
+                    $categoryTotals[$catName]['total'] += $detail->score;
+                    $categoryTotals[$catName]['count']++;
+                }
+            }
+        }
+
+        $avgPerCategory = [];
+        foreach ($categoryTotals as $cat => $data) {
+            $avgPerCategory[] = [
+                'category' => $cat,
+                'average' => round($data['total'] / $data['count'], 2),
+                'total' => $data['count']
+            ];
+        }
+
+        // Urutkan berdasarkan kategori
+        usort($avgPerCategory, fn($a, $b) => strcmp($a['category'], $b['category']));
+
+        // Data untuk grafik perkembangan per bulan
+        $monthlyData = $assessments
+            ->groupBy(fn($a) => $a->assessment_date->format('M Y'))
+            ->map(fn($items) => round($items->flatMap->details->avg('score'), 2))
+            ->take(12); // 12 bulan terakhir
+
+        return view('karyawan.rapor', compact(
+            'targetUser',
+            'assessments',
+            'stats',
+            'avgPerCategory',
+            'periods',
+            'feedbackList',
+            'monthlyData'
         ));
-    }
-
-    /**
-     * Menampilkan riwayat penilaian (untuk admin)
-     */
-    public function history()
-    {
-        // FIX: pakai relasi 'user' sesuai model Assessment
-        $assessments = Assessment::with(['evaluator', 'user'])
-            ->orderBy('assessment_date', 'desc')
-            ->paginate(20);
-
-        return view('admin.assessment.history', compact('assessments'));
-    }
-
-    /**
-     * Menghapus penilaian (hanya admin)
-     */
-    public function destroy($id)
-    {
-        if (auth()->user()->role != 'admin') {
-            return redirect()->back()->with('error', 'Hanya admin yang bisa menghapus penilaian!');
-        }
-
-        if (!is_numeric($id)) {
-            return redirect()->back()->with('error', 'ID penilaian tidak valid!');
-        }
-
-        $assessment = Assessment::find($id);
-
-        if (!$assessment) {
-            return redirect()->back()->with('error', 'Data penilaian tidak ditemukan!');
-        }
-
-        try {
-            DB::beginTransaction();
-            $assessment->details()->delete();
-            $assessment->delete();
-            DB::commit();
-
-            return redirect()->back()->with('success', 'Penilaian berhasil dihapus!');
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return redirect()->back()->with('error', 'Gagal menghapus penilaian: ' . $e->getMessage());
-        }
     }
 }

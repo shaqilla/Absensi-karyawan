@@ -46,7 +46,7 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
-    // ============= ADMIN ROUTES =============
+    // ADMIN ROUTES
     Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
 
         // Dashboard
@@ -90,7 +90,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/presensi-manual', [PresensiManualController::class, 'create'])->name('presensi.manual');
         Route::post('/presensi-manual', [PresensiManualController::class, 'store'])->name('presensi.store_manual');
 
-        // ============= ASSESSMENT ROUTES =============
+        // ASSESSMENT ROUTES
         Route::prefix('assessment')->name('assessment.')->group(function () {
 
             // Kategori (pakai AssessmentCategoryController)
@@ -108,11 +108,12 @@ Route::middleware('auth')->group(function () {
             Route::put('/update/{id}', [AssessmentController::class, 'update'])->name('update');
             Route::get('/report/{user_id?}', [AssessmentController::class, 'report'])->name('report');
             Route::get('/history', [AssessmentController::class, 'history'])->name('history');
+            Route::get('/detail/{id}', [AssessmentController::class, 'detail'])->name('detail');
             Route::delete('/destroy/{id}', [AssessmentController::class, 'destroy'])->name('destroy');
         });
     });
 
-    // ============= KARYAWAN ROUTES =============
+    // KARYAWAN ROUTES
     Route::middleware('auth')->prefix('karyawan')->name('karyawan.')->group(function () {
 
         // Dashboard

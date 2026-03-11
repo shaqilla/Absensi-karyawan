@@ -13,7 +13,7 @@ class Assessment extends Model
         'evaluatee_id',
         'assessment_date',
         'period',
-        'period_type',      
+        'period_type',
         'general_notes'
     ];
 
@@ -21,77 +21,84 @@ class Assessment extends Model
         'assessment_date' => 'date',
     ];
 
-    // Relasi ke detail penilaian (nilai per pertanyaan)
+    // Relasi ke detail penilaian
     public function details()
     {
         return $this->hasMany(AssessmentDetail::class, 'assessment_id');
     }
 
-    // Relasi ke penilai (yang memberikan nilai)
+    // Relasi ke penilai
     public function evaluator()
     {
         return $this->belongsTo(User::class, 'evaluator_id');
     }
 
-    // Relasi ke yang dinilai (karyawan yang dinilai)
+    // Relasi ke yang dinilai
     public function evaluatee()
     {
         return $this->belongsTo(User::class, 'evaluatee_id');
     }
 
-    // untuk evaluatee (agar konsisten dengan nama method)
+    // Alias untuk evaluatee
     public function user()
     {
         return $this->belongsTo(User::class, 'evaluatee_id');
     }
 
-    // Mendapatkan rata-rata nilai keseluruhan
+    // Accessor: Rata-rata nilai total
     public function getAverageScoreAttribute()
     {
-        return round($this->details->avg('score'), 2);
+        // Gunakan optional() atau cek count untuk menghindari error pembagian nol
+        return $this->details->count() > 0 ? round($this->details->avg('score'), 2) : 0;
     }
 
-    // Mendapatkan nilai per kategori (rata-rata dari pertanyaan per kategori)
+    // Accessor: Nilai per kategori (PENTING: Sudah diperbaiki agar aman dari null)
     public function getCategoryScoresAttribute()
     {
         $scores = [];
 
         foreach ($this->details as $detail) {
-            $categoryId = $detail->question->category_id;
-            $categoryName = $detail->question->category->name;
+            // Cek apakah relasi question dan category ada untuk menghindari error "Property of non-object"
+            $question = $detail->question;
+            if (!$question || !$question->category) {
+                continue;
+            }
+
+            $categoryId = $question->category_id;
+            $categoryName = $question->category->name;
 
             if (!isset($scores[$categoryId])) {
                 $scores[$categoryId] = [
                     'name' => $categoryName,
                     'total' => 0,
                     'count' => 0,
-                    'scores' => []
+                    'items' => []
                 ];
             }
 
             $scores[$categoryId]['total'] += $detail->score;
             $scores[$categoryId]['count']++;
-            $scores[$categoryId]['scores'][] = [
-                'question' => $detail->question->question,
+            $scores[$categoryId]['items'][] = [
+                'question' => $question->question,
                 'score' => $detail->score
             ];
         }
 
         // Hitung rata-rata per kategori
         foreach ($scores as &$category) {
-            $category['average'] = round($category['total'] / $category['count'], 2);
+            $category['average'] = $category['count'] > 0 ? round($category['total'] / $category['count'], 2) : 0;
         }
 
         return $scores;
     }
 
-    //  Mendapatkan ringkasan penilaian dalam format sederhana
+    // Accessor: Ringkasan untuk laporan cepat
     public function getSummaryAttribute()
     {
         return [
-            'evaluator' => $this->evaluator->nama ?? 'Unknown',
-            'evaluatee' => $this->evaluatee->nama ?? 'Unknown',
-            'date' => $this->assessment_date->format('d M Y'),
+            'evaluator' => $this->evaluator->nama ?? 'Sistem',
+            'evaluatee' => $this->evaluatee->nama ?? 'N/A',
+            'date' => $this->assessment_date ? $this->assessment_date->format('d M Y') : '-',
             'period' => $this->period,
             'average_score' => $this->average_score,
             'total_questions' => $this->details->count(),
@@ -99,6 +106,7 @@ class Assessment extends Model
         ];
     }
 
+    // --- SCOPES ---
     public function scopeThisMonth($query)
     {
         return $query->whereMonth('assessment_date', now()->month)

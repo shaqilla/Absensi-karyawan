@@ -24,7 +24,6 @@
             display: block;
         }
 
-        /* Animasi Sidebar */
         #sidebar {
             transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s ease-in-out;
         }
@@ -34,7 +33,6 @@
             white-space: nowrap;
         }
 
-        /* CSS Saat Sidebar Mengecil (Desktop) */
         .sidebar-collapsed {
             width: 5rem !important;
         }
@@ -52,7 +50,6 @@
             padding: 1.5rem 0 !important;
         }
 
-        /* Scrollbar rapi */
         ::-webkit-scrollbar {
             width: 4px;
         }
@@ -68,7 +65,7 @@
 
     <div class="flex h-screen w-screen overflow-hidden relative">
 
-        <!-- OVERLAY (Hanya di Mobile) -->
+        <!-- OVERLAY -->
         <div id="sidebarOverlay" onclick="toggleSidebar()" class="fixed inset-0 bg-indigo-950/60 backdrop-blur-sm z-40 hidden md:hidden transition-opacity duration-300"></div>
 
         <!-- SIDEBAR -->
@@ -85,12 +82,15 @@
             </div>
 
             <nav class="flex-1 p-4 space-y-2 mt-4 overflow-y-auto no-scrollbar">
+
+                {{-- UTAMA --}}
                 <p class="px-4 text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-2 sidebar-text">Utama</p>
                 <a href="{{ route('admin.dashboard') }}" class="flex items-center p-3 rounded-xl transition {{ request()->routeIs('admin.dashboard') ? 'bg-indigo-600 shadow-lg text-white' : 'text-indigo-200 hover:bg-indigo-900 hover:text-white' }}">
                     <i class="fas fa-chart-line w-6 text-center"></i>
                     <span class="ml-3 font-bold text-sm sidebar-text uppercase">Dashboard</span>
                 </a>
 
+                {{-- MANAJEMEN --}}
                 <p class="px-4 text-[10px] font-black text-indigo-400 uppercase tracking-widest mt-6 mb-2 sidebar-text">Manajemen</p>
                 <a href="{{ route('admin.karyawan.index') }}" class="flex items-center p-3 rounded-xl transition {{ request()->routeIs('admin.karyawan.*') ? 'bg-indigo-600 shadow-lg text-white' : 'text-indigo-200 hover:bg-indigo-900 hover:text-white' }}">
                     <i class="fas fa-users w-6 text-center"></i>
@@ -104,16 +104,23 @@
                     <i class="fas fa-calendar-alt w-6 text-center"></i>
                     <span class="ml-3 font-bold text-sm sidebar-text uppercase tracking-tighter">Jadwal Kerja</span>
                 </a>
+
+                {{-- PENILAIAN --}}
                 <p class="px-4 text-[10px] font-black text-indigo-400 uppercase tracking-widest mt-6 mb-2 sidebar-text">Penilaian</p>
-                <a href="{{ route('admin.assessment.employees') }}" class="flex items-center p-3 rounded-xl transition hover:bg-indigo-900 {{ request()->routeIs('admin.assessment.employees') ? 'bg-indigo-600 shadow-lg' : '' }}">
-                    <i class="fas fa-pen-nib w-6 text-center"></i> <span class="ml-3 font-bold text-sm uppercase">Input Penilaian</span>
+                <a href="{{ route('admin.assessment.employees') }}" class="flex items-center p-3 rounded-xl transition {{ request()->routeIs('admin.assessment.employees') || request()->routeIs('admin.assessment.create') ? 'bg-indigo-600 shadow-lg text-white' : 'text-indigo-200 hover:bg-indigo-900 hover:text-white' }}">
+                    <i class="fas fa-pen-nib w-6 text-center"></i>
+                    <span class="ml-3 font-bold text-sm sidebar-text uppercase tracking-tighter">Input Penilaian</span>
                 </a>
-                <!-- <a href="{{ route('admin.assessment.employees') }}" class="flex items-center p-3 rounded-xl transition hover:bg-indigo-900 {{ request()->routeIs('admin.assessment.employees') ? 'bg-indigo-600 shadow-lg' : '' }}">
-                    <i class="fas fa-pen-nib w-6 text-center"></i> <span class="ml-3 font-bold text-sm uppercase">laporan Penilaian</span>
+                <a href="{{ route('admin.assessment.report') }}" class="flex items-center p-3 rounded-xl transition {{ request()->routeIs('admin.assessment.report') ? 'bg-indigo-600 shadow-lg text-white' : 'text-indigo-200 hover:bg-indigo-900 hover:text-white' }}">
+                    <i class="fas fa-chart-radar w-6 text-center"></i>
+                    <span class="ml-3 font-bold text-sm sidebar-text uppercase tracking-tighter">Laporan Penilaian</span>
                 </a>
-                <a href="{{ route('admin.assessment.employees') }}" class="flex items-center p-3 rounded-xl transition hover:bg-indigo-900 {{ request()->routeIs('admin.assessment.employees') ? 'bg-indigo-600 shadow-lg' : '' }}">
-                    <i class="fas fa-pen-nib w-6 text-center"></i> <span class="ml-3 font-bold text-sm uppercase">kategori Penilaian</span>
-                </a> -->
+                <a href="{{ route('admin.assessment.categories') }}" class="flex items-center p-3 rounded-xl transition {{ request()->routeIs('admin.assessment.categories*') ? 'bg-indigo-600 shadow-lg text-white' : 'text-indigo-200 hover:bg-indigo-900 hover:text-white' }}">
+                    <i class="fas fa-tags w-6 text-center"></i>
+                    <span class="ml-3 font-bold text-sm sidebar-text uppercase tracking-tighter">Kategori Penilaian</span>
+                </a>
+
+                {{-- OPERASIONAL --}}
                 <p class="px-4 text-[10px] font-black text-indigo-400 uppercase tracking-widest mt-6 mb-2 sidebar-text">Operasional</p>
                 <a href="{{ route('admin.pengajuan.index') }}" class="flex items-center p-3 rounded-xl transition {{ request()->routeIs('admin.pengajuan.*') ? 'bg-indigo-600 shadow-lg text-white' : 'text-indigo-200 hover:bg-indigo-900 hover:text-white' }}">
                     <i class="fas fa-envelope-open-text w-6 text-center"></i>
@@ -123,18 +130,15 @@
                     <i class="fas fa-file-signature w-6 text-center"></i>
                     <span class="ml-3 font-bold text-sm sidebar-text uppercase tracking-tighter">Laporan Absensi</span>
                 </a>
-
-                <!-- MENU ABSENSI MANUAL (FIXED RESPONSIVE) -->
                 <a href="{{ route('admin.presensi.manual') }}" class="flex items-center p-3 rounded-xl transition {{ request()->routeIs('admin.presensi.manual') ? 'bg-indigo-600 shadow-lg text-white' : 'text-indigo-200 hover:bg-indigo-900 hover:text-white' }}">
-                    <i class="fas fa-edit w-6 text-center text-white-400"></i>
+                    <i class="fas fa-edit w-6 text-center"></i>
                     <span class="ml-3 font-bold text-sm sidebar-text uppercase tracking-tighter">Absensi Manual</span>
                 </a>
-
-                <!-- lokasi kantor -->
                 <a href="{{ route('admin.lokasi.index') }}" class="flex items-center p-3 rounded-xl transition {{ request()->routeIs('admin.lokasi.*') ? 'bg-indigo-600 shadow-lg text-white' : 'text-indigo-200 hover:bg-indigo-900 hover:text-white' }}">
                     <i class="fas fa-map-marked-alt w-6 text-center text-emerald-400"></i>
                     <span class="ml-3 font-bold text-sm sidebar-text uppercase tracking-tighter">Lokasi Kantor</span>
                 </a>
+
             </nav>
         </aside>
 
@@ -143,7 +147,6 @@
             <!-- TOPBAR -->
             <header class="bg-white shadow-sm h-20 flex items-center justify-between px-6 md:px-10 z-30 border-b relative">
                 <div class="flex items-center">
-                    <!-- Hamburger Mobile -->
                     <button onclick="toggleSidebar()" class="md:hidden p-3 mr-3 text-indigo-950 bg-indigo-50 rounded-2xl focus:outline-none">
                         <i class="fas fa-bars text-xl"></i>
                     </button>
@@ -187,22 +190,17 @@
     </div>
 
     <script>
-        // SIDEBAR TOGGLE (LAPTOP & HP)
         function toggleSidebar() {
             const sidebar = document.getElementById('sidebar');
             const overlay = document.getElementById('sidebarOverlay');
-
             if (window.innerWidth >= 768) {
-                // Laptop: Kecilkan Sidebar
                 sidebar.classList.toggle('sidebar-collapsed');
             } else {
-                // HP: Sembunyikan/Munculkan Sidebar
                 sidebar.classList.toggle('-translate-x-full');
                 overlay.classList.toggle('hidden');
             }
         }
 
-        // PROFILE DROPDOWN
         const btn = document.getElementById('adminDropdownBtn');
         const menu = document.getElementById('adminDropdownMenu');
         if (btn && menu) {
