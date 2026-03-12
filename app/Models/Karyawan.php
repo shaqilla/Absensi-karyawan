@@ -12,6 +12,7 @@ class Karyawan extends Model
     use HasFactory;
 
     // Kolom yang boleh diisi lewat create() atau update()
+    // termasuk property karena termasuk ke variabel yang ada di dalem class
     protected $fillable = [
         'user_id',       // Foreign key ke tabel users
         'nip',           // Nomor Induk Pegawai (unik)

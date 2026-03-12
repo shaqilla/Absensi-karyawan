@@ -19,6 +19,7 @@ class Assessment extends Model
 
     protected $casts = [
         'assessment_date' => 'date',
+        // agar format ('d','m','y') di controller jalan
     ];
 
     // Relasi ke detail penilaian

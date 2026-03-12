@@ -10,7 +10,6 @@ class LokasiKantorController extends Controller
 {
 
     // TAMPILKAN DATA LOKASI KANTOR
-
     public function index()
     {
         // Ambil baris pertama saja karena lokasi kantor hanya 1

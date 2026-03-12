@@ -9,9 +9,7 @@ use Illuminate\Support\Facades\Auth;
 
 class PengajuanIzinController extends Controller
 {
-    // =========================================
     // TAMPILKAN RIWAYAT PENGAJUAN KARYAWAN
-    // =========================================
     public function index()
     {
         $userId = Auth::id();
@@ -25,18 +23,14 @@ class PengajuanIzinController extends Controller
         return view('karyawan.izin_index', compact('pengajuans'));
     }
 
-    // =========================================
     // TAMPILKAN FORM PENGAJUAN BARU
-    // =========================================
     public function create()
     {
         // Tidak perlu ambil data apapun, langsung tampilkan form kosong
         return view('karyawan.izin');
     }
 
-    // =========================================
     // SIMPAN PENGAJUAN BARU KE DATABASE
-    // =========================================
     public function store(Request $request)
     {
         // LANGKAH 1: Validasi semua input dari form

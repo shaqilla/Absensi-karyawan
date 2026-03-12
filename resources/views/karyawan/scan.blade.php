@@ -140,6 +140,7 @@
                 });
             }
         })
+        // untuk menangani error/kesalahan yang terjadi saat program berjalan.
         .catch(err => {
             Swal.fire('Koneksi Error', 'Gagal menghubungi server.', 'error');
         });

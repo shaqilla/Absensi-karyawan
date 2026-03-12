@@ -13,11 +13,12 @@ use App\Helpers\GeoHelper;       // Helper khusus untuk hitung jarak GPS
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
 
+// Class adalah sebuah cetakan/template untuk membuat objek.
+// extends termasuk ke inheritance karena konsep pewarisan dari satu class ke class lain.
 class AbsensiController extends Controller
 {
-    // =========================================
-    // TAMPILKAN HALAMAN SCAN QR
-    // =========================================
+    // menampilkan halaman scan QR ke karyawan.
+    // Function adalah sekumpulan kode yang diberi nama
     public function index()
     {
         // Ambil data lokasi kantor (untuk validasi radius GPS)
@@ -33,9 +34,8 @@ class AbsensiController extends Controller
         return view('karyawan.scan', compact('lokasi'));
     }
 
-    // =========================================
     // PROSES ABSENSI SAAT KARYAWAN SCAN QR
-    // =========================================
+    // memproses semua logika absensi saat karyawan scan QR
     public function store(Request $request)
     {
         $lokasi         = LokasiKantor::first();
@@ -70,6 +70,8 @@ class AbsensiController extends Controller
 
         // LANGKAH 3: Validasi jarak GPS
         // GeoHelper::calculateDistance() menghitung jarak antara 2 koordinat GPS dalam meter
+        // function kumpulan perintah untuk menjalankan tugas tertentu
+        // memanggil function calculateDistance() dari file GeoHelper untuk menghitung jarak GPS.
         $jarak = GeoHelper::calculateDistance(
             $request->lat, $request->lng,           // Koordinat karyawan sekarang
             $lokasi->latitude, $lokasi->longitude   // Koordinat kantor
@@ -114,9 +116,9 @@ class AbsensiController extends Controller
             ->where('tanggal', $hariIniTanggal)
             ->first();
 
-        // =========================================
+
         // BELUM ADA PRESENSI → PROSES ABSEN MASUK
-        // =========================================
+
         if (!$presensi) {
 
             // A. Belum waktunya masuk → tolak
@@ -161,9 +163,9 @@ class AbsensiController extends Controller
 
             return response()->json(['success' => true, 'message' => $msg]);
 
-        // =========================================
+
         // SUDAH ADA PRESENSI → PROSES ABSEN PULANG
-        // =========================================
+
         } else {
 
             // Kalau jam_keluar sudah ada → sudah absen pulang sebelumnya

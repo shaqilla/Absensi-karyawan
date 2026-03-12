@@ -19,7 +19,7 @@ class QrController extends Controller
             // random_bytes(20) = generate 20 byte data acak
             // bin2hex() = ubah byte tersebut jadi string heksadesimal (40 karakter)
             // Contoh hasil: "a3f9c2e1b7d4082..."
-            $token = bin2hex(random_bytes(20));
+            $token = bin2hex(random_bytes(20));  
 
             // Matikan semua token QR yang masih aktif
             // Supaya tidak ada 2 QR aktif sekaligus — mencegah penyalahgunaan

@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Karyawan;
 use App\Http\Controllers\Controller;
 use App\Models\Presensi;
 use App\Models\JadwalKerja;
-use App\Models\Pengajuan;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -13,16 +12,15 @@ use Carbon\Carbon;
 
 class KaryawanDashboardController extends Controller
 {
-    // DASHBOARD UTAMA KARYAWAN
     public function index()
     {
-        $userId         = Auth::id();
-        $hariIniTanggal = now()->toDateString();
-        $waktuSekarang  = now();
+        date_default_timezone_set('Asia/Jakarta');
+        $userId = Auth::id();
+        $today = Carbon::today();
 
-        // Mapping nama hari Inggris → Indonesia (sama seperti controller lain)
-        $hariInggris = now()->format('l');
-        $daftarHari  = [
+        // Array adalah struktur data yang menyimpan banyak nilai dalam satu variabel dengan urutan tertentu
+        // 1. Mapping Hari Indonesia (Harus Huruf Kecil sesuai Database)
+        $mappingHari = [
             'Monday' => 'senin',
             'Tuesday' => 'selasa',
             'Wednesday' => 'rabu',
@@ -31,149 +29,85 @@ class KaryawanDashboardController extends Controller
             'Saturday' => 'sabtu',
             'Sunday' => 'minggu'
         ];
-        $namaHariIni = $daftarHari[$hariInggris];
 
-        // Ambil jadwal kerja karyawan ini untuk hari ini
+        // 2. Ambil Jadwal & Absen Hari Ini
+        $hariIniNama = $mappingHari[$today->format('l')];
         $jadwalHariIni = JadwalKerja::with('shift')
             ->where('user_id', $userId)
-            ->whereRaw('LOWER(hari) = ?', [$namaHariIni]) // Case-insensitive
+            ->where('hari', $hariIniNama)
             ->where('status', 'aktif')
             ->first();
 
-        // Ambil data presensi karyawan ini untuk hari ini (kalau ada)
         $presensiHariIni = Presensi::where('user_id', $userId)
-            ->where('tanggal', $hariIniTanggal)
+            ->where('tanggal', $today->toDateString())
             ->first();
 
-
-        // LOGIKA STATUS TAMPILAN DASHBOARD
-
-        $isAlpha   = false; // Penanda karyawan dinyatakan alpha
-        $isWaiting = false; // Penanda belum waktunya scan
-
-        // Hanya dijalankan kalau belum absen DAN punya jadwal hari ini
+        // 3. Logika Alpha/Waiting untuk Tombol di Dashboard
+        $isAlpha = false;
+        $isWaiting = false;
         if (!$presensiHariIni && $jadwalHariIni) {
+            $jamMasukShift = Carbon::parse($today->toDateString() . ' ' . $jadwalHariIni->shift->jam_masuk);
+            $batasMasuk = $jamMasukShift->copy()->addMinutes($jadwalHariIni->shift->toleransi_telat);
 
-            // Patokan waktu dari data shift
-            $jamMasukShift  = Carbon::parse($hariIniTanggal . ' ' . $jadwalHariIni->shift->jam_masuk);
-
-            // Batas toleransi = jam masuk + toleransi menit
-            $batasMasuk     = $jamMasukShift->copy()->addMinutes($jadwalHariIni->shift->toleransi_telat);
-
-            // Boleh mulai scan = 15 menit SEBELUM jam masuk
-            // subMinutes(15) = kurangi 15 menit dari jam masuk
-            $mulaiBolehScan = $jamMasukShift->copy()->subMinutes(15);
-
-            if ($waktuSekarang->lt($mulaiBolehScan)) {
-                // Waktu sekarang masih terlalu awal (lebih dari 15 menit sebelum masuk)
+            if (now()->lt($jamMasukShift)) {
                 $isWaiting = true;
-            } elseif ($waktuSekarang->gt($batasMasuk)) {
-                // Waktu sekarang sudah lewat batas toleransi → alpha
+            } elseif (now()->gt($batasMasuk)) {
                 $isAlpha = true;
             }
-            // Kalau tidak keduanya → berarti dalam rentang boleh scan (normal)
         }
 
-        // Ambil 7 riwayat presensi terakhir untuk ditampilkan di dashboard
-        $riwayat = Presensi::where('user_id', $userId)
-            ->orderBy('tanggal', 'desc') // Terbaru dulu
-            ->take(7)                    // Ambil 7 data saja
-            ->get();
+        // 4. LOGIKA RIWAYAT 7 HARI (MENGGABUNGKAN DATA ASLI + ALPHA)
+        $riwayatData = [];
+        for ($i = 0; $i < 7; $i++) {
+            $date = Carbon::today()->subDays($i);
+            $dateString = $date->toDateString();
+            $dayName = $mappingHari[$date->format('l')];
 
-        return view('karyawan.dashboard', compact(
-            'presensiHariIni',  // Status absen hari ini
-            'riwayat',          // 7 riwayat presensi terakhir
-            'jadwalHariIni',    // Info jadwal & shift hari ini
-            'isAlpha',          // True kalau karyawan alpha
-            'isWaiting'         // True kalau belum waktunya scan
-        ));
+            // Cari di tabel presensi
+            $p = Presensi::where('user_id', $userId)->where('tanggal', $dateString)->first();
+
+            // Cari di tabel jadwal
+            $j = JadwalKerja::with('shift')->where('user_id', $userId)->where('hari', $dayName)->first();
+
+            if ($p) {
+                // JIKA ADA DATA ABSEN
+                $riwayatData[] = (object)[
+                    'tanggal' => $dateString,
+                    'jam_masuk' => date('H:i', strtotime($p->jam_masuk)),
+                    'jam_keluar' => $p->jam_keluar ? date('H:i', strtotime($p->jam_keluar)) : '--:--',
+                    'status' => $p->status
+                ];
+            } elseif ($j && $j->status == 'aktif') {
+                // JIKA GAK ADA ABSEN TAPI HARUSNYA KERJA (ALPHA)
+                $batas = Carbon::parse($dateString . ' ' . $j->shift->jam_masuk)->addMinutes($j->shift->toleransi_telat);
+
+                // Hanya tampilkan jika hari sudah lewat, atau hari ini sudah lewat batas masuk
+                if ($date->lt($today) || ($date->equalTo($today) && now()->gt($batas))) {
+                    $riwayatData[] = (object)[
+                        'tanggal' => $dateString,
+                        'jam_masuk' => '--:--',
+                        'jam_keluar' => '--:--',
+                        'status' => 'alpha'
+                    ];
+                }
+            }
+        }
+
+        // Kita beri nama variabel 'riwayat' agar cocok dengan Blade
+        $riwayat = $riwayatData;
+
+        return view('karyawan.dashboard', compact('presensiHariIni', 'riwayat', 'jadwalHariIni', 'isAlpha', 'isWaiting'));
     }
 
-    // HALAMAN JADWAL KERJA KARYAWAN
     public function jadwal()
     {
-        $jadwals = JadwalKerja::with('shift')
-            ->where('user_id', Auth::id())
-            // Urutkan hari sesuai urutan yang logis (senin-minggu)
-            // FIELD() = fungsi MySQL untuk urutan custom
-            ->orderByRaw("FIELD(hari, 'senin', 'selasa', 'rabu', 'kamis', 'jumat', 'sabtu', 'minggu')")
-            ->get();
-
+        $jadwals = JadwalKerja::with('shift')->where('user_id', Auth::id())->get();
         return view('karyawan.jadwal', compact('jadwals'));
     }
 
-    // HALAMAN PROFIL KARYAWAN
     public function profil()
     {
-        // Ambil data user yang login beserta detail karyawan dan departemennya
         $user = User::with(['karyawan.departemen'])->findOrFail(Auth::id());
         return view('karyawan.profil', compact('user'));
-    }
-
-    // HALAMAN LAPORAN PRESENSI PRIBADI
-    public function laporan(Request $request)
-    {
-        $userId = Auth::id();
-
-        // Ambil filter bulan & tahun dari URL, default ke bulan & tahun sekarang
-        $bulan = $request->bulan ?? date('m');
-        $tahun = $request->tahun ?? date('Y');
-
-        // Ambil semua presensi karyawan ini di bulan & tahun yang dipilih
-        $laporans = Presensi::with('shift')
-            ->where('user_id', $userId)
-            ->whereMonth('tanggal', $bulan)
-            ->whereYear('tanggal', $tahun)
-            ->orderBy('tanggal', 'asc') // Urutkan dari tanggal terlama
-            ->get();
-
-        // Hitung statistik dari data yang sudah diambil
-        $stats = [
-            // Hitung dari collection presensi (tidak query ulang ke DB)
-            'hadir' => $laporans->where('status', 'hadir')->count(),
-            'telat' => $laporans->where('status', 'telat')->count(),
-
-            // Hitung izin & sakit dari tabel pengajuan (query terpisah)
-            'izin'  => Pengajuan::where('user_id', $userId)
-                ->where('status_approval', 'disetujui')
-                ->where('jenis_pengajuan', 'izin')
-                ->whereMonth('tanggal_mulai', $bulan)
-                ->count(),
-            'sakit' => Pengajuan::where('user_id', $userId)
-                ->where('status_approval', 'disetujui')
-                ->where('jenis_pengajuan', 'sakit')
-                ->whereMonth('tanggal_mulai', $bulan)
-                ->count(),
-        ];
-
-        return view('karyawan.laporan', compact('laporans', 'stats', 'bulan', 'tahun'));
-    }
-
-    public function raporSaya()
-    {
-        $userId = Auth::id();
-
-        // 1. Ambil penilaian terbaru untuk saya
-        $penilaian = \App\Models\Assessment::with('details.category')
-            ->where('evaluatee_id', $userId)
-            ->latest()
-            ->first();
-
-        // 2. Jika belum ada nilai, kirim data kosong
-        if (!$penilaian) {
-            return view('karyawan.rapor', ['labels' => [], 'scores' => [], 'notes' => 'Belum ada penilaian.']);
-        }
-
-        // 3. Susun data untuk Grafik Radar
-        $labels = [];
-        $scores = [];
-        foreach ($penilaian->details as $detail) {
-            $labels[] = $detail->category->name;
-            $scores[] = $detail->score;
-        }
-
-        $notes = $penilaian->general_notes;
-
-        return view('karyawan.rapor', compact('labels', 'scores', 'notes'));
     }
 }

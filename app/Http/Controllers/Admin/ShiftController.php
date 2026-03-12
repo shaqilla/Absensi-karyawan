@@ -46,7 +46,7 @@ class ShiftController extends Controller
     }
 
     // HAPUS SHIFT DARI DATABASE
-    public function destroy($id)
+    public function destroy($id) 
     {
         // Cari shift yang akan dihapus, kalau tidak ada → error 404
         $shift = Shift::findOrFail($id);

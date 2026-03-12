@@ -142,7 +142,8 @@ class LaporanController extends Controller
                 $tgl      = $date->format("Y-m-d");
                 $hariNama = $mappingHari[$date->format("l")];
 
-                foreach ($karyawans as $k) {
+                // Looping adalah perulangan kode yang dijalankan berkali-kali
+                foreach ($karyawans as $k) { 
 
                     $presensi = $allPresensi
                         ->where('tanggal', $tgl)
