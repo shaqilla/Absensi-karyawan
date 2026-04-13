@@ -12,7 +12,7 @@ class Presensi extends Model
     protected $fillable = [
         'user_id',
         'qr_session_id',
-        'shift_id', 
+        'shift_id',
         'tanggal',
         'jam_masuk',
         'jam_keluar',
@@ -24,7 +24,7 @@ class Presensi extends Model
     ];
 
     // Relasi ke User
-    public function user() 
+    public function user()
     {
         return $this->belongsTo(User::class, 'user_id');
     }
