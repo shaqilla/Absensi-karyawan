@@ -71,4 +71,15 @@ class User extends Authenticatable
     {
         return $this->hasMany(Assessment::class, 'evaluatee_id');
     }
+
+    public function currentPoints()
+    {
+        $lastLedger = $this->hasMany(PointLedger::class)->latest()->first();
+        return $lastLedger ? $lastLedger->current_balance : 0;
+    }
+
+    public function tokens()
+    {
+        return $this->hasMany(UserToken::class);
+    }
 }

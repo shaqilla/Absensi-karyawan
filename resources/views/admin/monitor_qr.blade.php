@@ -10,8 +10,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;500;700&display=swap" rel="stylesheet">
 
     <style>
-        body { 
-            background: #09090b; 
+        body {
+            background: #09090b;
             font-family: 'Space Grotesk', sans-serif;
             color: white;
             height: 100vh;
@@ -85,7 +85,7 @@
     <div id="glow2" class="glow-bg" style="bottom: -10%; right: -10%;"></div>
 
     <div class="flex flex-col md:flex-row items-center gap-12 z-10">
-        
+
         <!-- Sisi Kiri: Jam & Info -->
         <div class="text-center md:text-left space-y-4">
             <div>
@@ -94,7 +94,7 @@
                 </h1>
                 <p class="text-slate-500 tracking-widest text-xs uppercase font-medium">Attendance System Monitor</p>
             </div>
-            
+
             <div class="py-6">
                 <div id="clock" class="text-6xl font-bold tracking-tighter">00:00:00</div>
                 <div id="date" class="text-indigo-400 font-medium text-sm mt-1 uppercase tracking-widest">Senin, 01 Januari 2024</div>
@@ -117,7 +117,7 @@
         <div id="main-container" class="relative mode-masuk">
             <!-- Frame Bingkai Luar -->
             <div class="glass p-12 rounded-[40px] relative overflow-hidden">
-                
+
                 <div class="qr-wrapper shadow-2xl">
                     <div id="qrcode"></div>
                     <!-- Viewfinder corners -->
@@ -185,14 +185,14 @@
             .then(res => res.json())
             .then(data => {
                 qrcode.clear();
-                qrcode.makeCode(data.token); 
+                qrcode.makeCode(data.token);
             }).catch(e => console.log("Refresh Error"));
     }
 
         function updateTime() {
             const now = new Date();
             document.getElementById('clock').innerText = now.toLocaleTimeString('id-ID', { hour12: false });
-            
+
             const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
             document.getElementById('date').innerText = now.toLocaleDateString('id-ID', options);
         }

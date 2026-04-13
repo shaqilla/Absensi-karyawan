@@ -4,7 +4,7 @@
 <div class="flex flex-col items-center justify-center min-h-[70vh]">
     <div class="bg-white p-10 rounded-3xl shadow-xl text-center max-w-sm w-full border">
         <h1 class="text-2xl font-black text-gray-800 mb-6 uppercase">Scanner QR</h1>
-        
+
         <div class="flex justify-center mb-6 p-4 bg-white border-2 border-dashed border-gray-200 rounded-2xl">
             <!-- WADAH QR -->
             <div id="qrcode"></div>
@@ -22,7 +22,7 @@
 <script>
     const qrContainer = document.getElementById("qrcode");
     const statusText = document.getElementById("status");
-
+ 
     function fetchQR() {
         console.log("Fetching...");
         statusText.innerText = "MENGAMBIL DATA...";
@@ -35,7 +35,7 @@
             .then(data => {
                 if(data.token) {
                     qrContainer.innerHTML = ""; // Hapus yang lama
-                    
+
                     // Membuat QR
                     new QRCode(qrContainer, {
                         text: data.token,
@@ -56,7 +56,7 @@
 
     // Jalankan otomatis
     window.addEventListener('load', fetchQR);
-    
+
     // Refresh tiap 30 detik
     setInterval(fetchQR, 30000);
 </script>

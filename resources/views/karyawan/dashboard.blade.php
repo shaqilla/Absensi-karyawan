@@ -5,17 +5,45 @@
     <!-- HEADER -->
     <div class="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4 text-center md:text-left">
         <div>
-            <h1 class="text-2xl md:text-3xl font-black uppercase tracking-tighter">Dashboard Saya</h1>
+            <h1 class="text-2xl md:text-3xl font-black uppercase tracking-tighter text-indigo-950">Dashboard Saya</h1>
             <p class="text-gray-500 text-xs md:text-sm italic">Status kehadiran dan riwayat mingguan.</p>
         </div>
         <div class="flex justify-center">
-            <span class="bg-indigo-50 text-indigo-600 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border border-indigo-100 shadow-sm">
+            <span class="bg-white text-indigo-600 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border border-indigo-100 shadow-sm">
                 {{ now()->isoFormat('dddd, D MMMM YYYY') }}
             </span>
         </div>
     </div>
 
-    <!-- STATISTIK GRID -->
+    <!-- HERO SECTION DOMPET INTEGRITAS -->
+    <div class="bg-indigo-900 rounded-[2.5rem] p-8 text-white mb-10 shadow-2xl relative overflow-hidden border-4 border-indigo-800">
+        <div class="relative z-10">
+            <div class="flex items-center gap-2 mb-2">
+                <i class="fas fa-wallet text-indigo-300 text-xs"></i>
+                <p class="text-indigo-200 text-[10px] font-black uppercase tracking-[0.2em]">Saldo Poin Integritas</p>
+            </div>
+            <div class="flex items-end gap-3">
+                <!-- Memanggil fungsi currentPoints dari Model User -->
+                <h1 class="text-5xl font-black tracking-tighter">{{ auth()->user()->currentPoints() }}</h1>
+                <p class="text-indigo-300 font-black mb-1 uppercase text-xs tracking-widest">Points</p>
+            </div>
+
+            <!-- Tombol Cepat Marketplace -->
+            <div class="mt-8 flex flex-wrap gap-3">
+                <a href="#" class="bg-white text-indigo-900 hover:bg-indigo-50 px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition shadow-lg flex items-center">
+                    <i class="fas fa-store mr-2"></i> Tukar Poin
+                </a>
+                <a href="#" class="bg-indigo-800/50 hover:bg-indigo-800 px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition border border-indigo-700 flex items-center">
+                    <i class="fas fa-exchange-alt mr-2 text-indigo-400"></i> Riwayat Poin
+                </a>
+            </div>
+        </div>
+        <!-- Background Decor (Koin Gede transparan) -->
+        <i class="fas fa-coins absolute -right-10 -bottom-10 text-[15rem] opacity-10 rotate-12"></i>
+    </div>
+
+
+    <!-- GRID STATISTIK -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
         <!-- Log Presensi -->
         <div class="bg-white p-6 md:p-8 rounded-[2rem] shadow-sm border border-gray-100 transition-all hover:shadow-md">
@@ -40,7 +68,7 @@
         <div class="bg-white p-6 md:p-8 rounded-[2rem] shadow-sm border border-gray-100">
             <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 border-b pb-2">Shift Kerja</p>
             <div class="flex justify-between items-center mb-2">
-                <span class="text-[10px] font-bold text-gray-500 uppercase">Jadwal</span>
+                <span class="text-[10px] font-bold text-gray-400 uppercase">Jadwal</span>
                 <span class="text-lg font-black text-indigo-600 font-mono">
                     {{ $jadwalHariIni ? date('H:i', strtotime($jadwalHariIni->shift->jam_masuk)) : '--:--' }}
                 </span>
@@ -55,7 +83,7 @@
         <!-- AKSI DINAMIS -->
         <div class="relative overflow-hidden h-full min-h-[140px]">
             @if($isAlpha)
-                <div class="bg-slate-900 p-8 rounded-[2rem] shadow-xl flex items-center justify-between h-full border-b-4 border-rose-600 text-white">
+                <div class="bg-slate-900 p-6 md:p-8 rounded-[2rem] shadow-xl flex items-center justify-between h-full border-b-4 border-rose-600 text-white">
                     <div>
                         <p class="text-rose-500 text-[10px] font-black uppercase mb-1">Status</p>
                         <h4 class="font-black text-xl leading-tight uppercase">TIDAK MASUK<br>(ALPHA)</h4>
@@ -63,12 +91,12 @@
                     <i class="fas fa-user-times text-4xl opacity-20"></i>
                 </div>
             @elseif($isWaiting)
-                <div class="bg-amber-50 p-8 rounded-[2rem] shadow-sm border border-dashed border-amber-200 flex items-center justify-between h-full text-amber-600">
+                <div class="bg-amber-50 p-6 md:p-8 rounded-[2rem] shadow-sm border border-dashed border-amber-200 flex items-center justify-between h-full text-amber-600">
                     <div><h4 class="font-black text-sm uppercase">BELUM WAKTUNYA<br>ABSEN</h4></div>
                     <i class="fas fa-hourglass-start text-2xl opacity-30 animate-pulse"></i>
                 </div>
             @elseif(!$presensiHariIni)
-                <div class="bg-indigo-600 p-8 rounded-[2rem] shadow-xl flex flex-col justify-center h-full hover:bg-indigo-700 transition">
+                <div class="bg-indigo-600 p-6 md:p-8 rounded-[2rem] shadow-xl flex flex-col justify-center h-full hover:bg-indigo-700 transition">
                     <a href="{{ route('karyawan.scan') }}" class="bg-white text-indigo-600 py-4 rounded-2xl font-black text-center text-xs uppercase tracking-widest shadow-lg">SCAN MASUK</a>
                 </div>
             @elseif($presensiHariIni && !$presensiHariIni->jam_keluar)
@@ -84,7 +112,7 @@
         </div>
     </div>
 
-    <!-- TABEL RIWAYAT (DATA ASLI + ALPHA) -->
+    <!-- TABEL RIWAYAT -->
     <div class="bg-white rounded-[2rem] shadow-sm border border-gray-100 overflow-hidden">
         <div class="p-6 bg-gray-50/50 border-b border-gray-100 flex justify-between items-center">
             <h2 class="font-black text-gray-800 text-xs uppercase tracking-widest italic">Riwayat 7 Hari Terakhir</h2>

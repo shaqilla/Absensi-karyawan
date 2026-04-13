@@ -198,7 +198,7 @@ class DatabaseSeeder extends Seeder
             'radius' => 50
         ]);
 
-        // ============= TAMBAHAN: SEEDER UNTUK ASSESSMENT =============
+        // TAMBAHAN: SEEDER UNTUK ASSESSMENT
         $this->seedAssessmentData(
             $admin->id,                    // Admin ID
             [$manager->id, $supervisor->id], // Penilai (karyawan dengan jabatan manager/supervisor)
@@ -303,7 +303,7 @@ class DatabaseSeeder extends Seeder
         $allQuestionIds = [];
         foreach ($questionsByCategory as $categoryName => $questions) {
             $categoryId = $categoryIds[$categoryName];
-            
+
             foreach ($questions as $index => $question) {
                 $questionId = DB::table('assessment_questions')->insertGetId([
                     'category_id' => $categoryId,
@@ -329,7 +329,7 @@ class DatabaseSeeder extends Seeder
         $totalAssessments = 0;
         foreach ($periods as $index => $period) {
             $assessmentDate = Carbon::now()->subMonths(2 - $index);
-            
+
             foreach ($karyawanIds as $karyawanId) {
                 // Setiap karyawan dinilai oleh setiap penilai
                 foreach ($penilaiIds as $penilaiId) {
@@ -351,7 +351,7 @@ class DatabaseSeeder extends Seeder
                         $baseScore = 3 + $index; // Bulan 1: 3, Bulan 2: 4, Bulan 3: 5
                         $randomFactor = rand(-1, 1);
                         $score = min(5, max(1, $baseScore + $randomFactor));
-                        
+
                         DB::table('assessment_details')->insert([
                             'assessment_id' => $assessmentId,
                             'question_id' => $questionId,
@@ -378,7 +378,7 @@ class DatabaseSeeder extends Seeder
                 // Nilai dari admin
                 foreach ($allQuestionIds as $questionId) {
                     $score = rand(3, 5);
-                    
+
                     DB::table('assessment_details')->insert([
                         'assessment_id' => $assessmentId2,
                         'question_id' => $questionId,

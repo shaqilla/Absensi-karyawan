@@ -142,6 +142,14 @@
                         Penilaian</span>
                 </a>
 
+                {{-- DOMPET INTEGRITAS --}}
+                <p class="px-4 text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em] mt-6 mb-2 sidebar-text">
+                    Ekonomi Sistem</p>
+                <a href="{{ route('admin.integrity.index') }}" class="flex items-center p-3 rounded-xl transition {{ request()->routeIs('admin.integrity.*') ? 'bg-indigo-600 text-white shadow-lg' : 'text-indigo-200 hover:bg-indigo-900' }}">
+                    <i class="fas fa-coins w-6 text-center text-amber-400"></i>
+                    <span class="ml-3 font-bold text-sm uppercase sidebar-text">Dompet Integritas</span>
+                </a>
+
                 {{-- OPERASIONAL --}}
                 <p class="px-4 text-[10px] font-black text-indigo-400 uppercase tracking-widest mt-6 mb-2 sidebar-text">
                     Operasional</p>

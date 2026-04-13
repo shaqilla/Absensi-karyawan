@@ -14,75 +14,85 @@ class KaryawanDashboardController extends Controller
 {
     public function index()
     {
-        date_default_timezone_set('Asia/Jakarta');
+        // Set timezone secara eksplisit agar konsisten
+        $timezone = 'Asia/Jakarta';
+        $now = Carbon::now($timezone);
+        $today = Carbon::today($timezone);
         $userId = Auth::id();
-        $today = Carbon::today();
 
-        // Array adalah struktur data yang menyimpan banyak nilai dalam satu variabel dengan urutan tertentu
-        // 1. Mapping Hari Indonesia (Harus Huruf Kecil sesuai Database)
         $mappingHari = [
-            'Monday' => 'senin',
-            'Tuesday' => 'selasa',
+            'Monday'    => 'senin',
+            'Tuesday'   => 'selasa',
             'Wednesday' => 'rabu',
-            'Thursday' => 'kamis',
-            'Friday' => 'jumat',
-            'Saturday' => 'sabtu',
-            'Sunday' => 'minggu'
+            'Thursday'  => 'kamis',
+            'Friday'    => 'jumat',
+            'Saturday'  => 'sabtu',
+            'Sunday'    => 'minggu'
         ];
 
-        // 2. Ambil Jadwal & Absen Hari Ini
-        $hariIniNama = $mappingHari[$today->format('l')];
+        $hariIniNama = $mappingHari[$now->format('l')];
+
+        // Ambil Jadwal Kerja
         $jadwalHariIni = JadwalKerja::with('shift')
             ->where('user_id', $userId)
             ->where('hari', $hariIniNama)
             ->where('status', 'aktif')
             ->first();
 
+        // Ambil Data Presensi Hari Ini
         $presensiHariIni = Presensi::where('user_id', $userId)
             ->where('tanggal', $today->toDateString())
             ->first();
 
-        // 3. Logika Alpha/Waiting untuk Tombol di Dashboard
         $isAlpha = false;
         $isWaiting = false;
-        if (!$presensiHariIni && $jadwalHariIni) {
-            $jamMasukShift = Carbon::parse($today->toDateString() . ' ' . $jadwalHariIni->shift->jam_masuk);
+        $canScan = false;
+
+        if ($jadwalHariIni && !$presensiHariIni) {
+            // Parsing jam masuk dari shift
+            $jamMasukShift = Carbon::createFromFormat('Y-m-d H:i:s', $today->toDateString() . ' ' . $jadwalHariIni->shift->jam_masuk, $timezone);
+
+            // Batas awal boleh scan (misal: 60 menit sebelum jam masuk)
+            $awalScan = $jamMasukShift->copy()->subMinutes(60);
+
+            // Batas akhir (jam masuk + toleransi)
             $batasMasuk = $jamMasukShift->copy()->addMinutes($jadwalHariIni->shift->toleransi_telat);
 
-            if (now()->lt($jamMasukShift)) {
+            if ($now->lt($awalScan)) {
+                // Belum waktunya scan (terlalu pagi)
                 $isWaiting = true;
-            } elseif (now()->gt($batasMasuk)) {
+            } elseif ($now->between($awalScan, $batasMasuk)) {
+                // Waktu yang tepat untuk scan
+                $canScan = true;
+            } elseif ($now->gt($batasMasuk)) {
+                // Sudah lewat batas toleransi
                 $isAlpha = true;
             }
         }
 
-        // 4. LOGIKA RIWAYAT 7 HARI (MENGGABUNGKAN DATA ASLI + ALPHA)
+        // LOGIKA RIWAYAT 7 HARI
         $riwayatData = [];
         for ($i = 0; $i < 7; $i++) {
-            $date = Carbon::today()->subDays($i);
+            $date = Carbon::today($timezone)->subDays($i);
             $dateString = $date->toDateString();
             $dayName = $mappingHari[$date->format('l')];
 
-            // Cari di tabel presensi
             $p = Presensi::where('user_id', $userId)->where('tanggal', $dateString)->first();
-
-            // Cari di tabel jadwal
             $j = JadwalKerja::with('shift')->where('user_id', $userId)->where('hari', $dayName)->first();
 
             if ($p) {
-                // JIKA ADA DATA ABSEN
                 $riwayatData[] = (object)[
                     'tanggal' => $dateString,
-                    'jam_masuk' => date('H:i', strtotime($p->jam_masuk)),
-                    'jam_keluar' => $p->jam_keluar ? date('H:i', strtotime($p->jam_keluar)) : '--:--',
+                    'jam_masuk' => $p->jam_masuk ? Carbon::parse($p->jam_masuk)->format('H:i') : '--:--',
+                    'jam_keluar' => $p->jam_keluar ? Carbon::parse($p->jam_keluar)->format('H:i') : '--:--',
                     'status' => $p->status
                 ];
             } elseif ($j && $j->status == 'aktif') {
-                // JIKA GAK ADA ABSEN TAPI HARUSNYA KERJA (ALPHA)
-                $batas = Carbon::parse($dateString . ' ' . $j->shift->jam_masuk)->addMinutes($j->shift->toleransi_telat);
+                $batas = Carbon::createFromFormat('Y-m-d H:i:s', $dateString . ' ' . $j->shift->jam_masuk, $timezone)
+                               ->addMinutes($j->shift->toleransi_telat);
 
-                // Hanya tampilkan jika hari sudah lewat, atau hari ini sudah lewat batas masuk
-                if ($date->lt($today) || ($date->equalTo($today) && now()->gt($batas))) {
+                // Jika hari sudah lewat ATAU hari ini tapi sudah lewat batas toleransi
+                if ($date->lt($today) || ($date->equalTo($today) && $now->gt($batas))) {
                     $riwayatData[] = (object)[
                         'tanggal' => $dateString,
                         'jam_masuk' => '--:--',
@@ -93,10 +103,14 @@ class KaryawanDashboardController extends Controller
             }
         }
 
-        // Kita beri nama variabel 'riwayat' agar cocok dengan Blade
-        $riwayat = $riwayatData;
-
-        return view('karyawan.dashboard', compact('presensiHariIni', 'riwayat', 'jadwalHariIni', 'isAlpha', 'isWaiting'));
+        return view('karyawan.dashboard', [
+            'presensiHariIni' => $presensiHariIni,
+            'riwayat'         => $riwayatData,
+            'jadwalHariIni'   => $jadwalHariIni,
+            'isAlpha'         => $isAlpha,
+            'isWaiting'       => $isWaiting,
+            'canScan'         => $canScan, // Variabel baru untuk view
+        ]);
     }
 
     public function jadwal()

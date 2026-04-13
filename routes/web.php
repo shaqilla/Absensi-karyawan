@@ -15,7 +15,9 @@ use App\Http\Controllers\Admin\LokasiKantorController;
 use App\Http\Controllers\Admin\PresensiManualController;
 use App\Http\Controllers\Admin\AssessmentController;
 use App\Http\Controllers\Admin\AssessmentCategoryController;
-use App\Http\Controllers\Admin\QuestionController; // Pastikan Controller ini ada
+use App\Http\Controllers\Admin\QuestionController;
+use App\Http\Controllers\Admin\PointRuleController; // Controller Admin untuk Point
+use App\Http\Controllers\Karyawan\WalletController; // Controller Karyawan untuk Wallet
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
@@ -25,7 +27,7 @@ Route::get('/', function () {
     return redirect('/dashboard');
 });
 
-// 2. LOGIKA REDIRECT DASHBOARD
+// 2. LOGIKA REDIRECT DASHBOARD (Memutuskan mau ke Blade Admin atau Blade Karyawan)
 Route::get('/dashboard', function () {
     $user = Auth::user();
     if ($user) {
@@ -42,7 +44,7 @@ Route::get('/dashboard', function () {
 // 3. SEMUA RUTE YANG BUTUH LOGIN
 Route::middleware('auth')->group(function () {
 
-    // Profile Dasar
+    // Profile Dasar (Breeze)
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
@@ -62,13 +64,13 @@ Route::middleware('auth')->group(function () {
         Route::put('/karyawan/{id}', [KaryawanController::class, 'update'])->name('karyawan.update');
         Route::delete('/karyawan/{id}', [KaryawanController::class, 'destroy'])->name('karyawan.destroy');
 
-        // Master Data
+        // Master Data (Shift, Jadwal, Lokasi)
         Route::resource('shift', ShiftController::class)->names('shift');
         Route::resource('jadwal', JadwalController::class)->names('jadwal');
         Route::get('/lokasi-kantor', [LokasiKantorController::class, 'index'])->name('lokasi.index');
         Route::post('/lokasi-kantor', [LokasiKantorController::class, 'update'])->name('lokasi.update');
 
-        // Operasional QR
+        // Operasional QR & Monitor
         Route::get('/monitor-qr', function () { return view('admin.monitor_qr'); })->name('monitor.index');
         Route::get('/qr-scanner', function () { return view('admin.qr_generator'); })->name('qr.view');
         Route::get('/generate-new-token', [QrController::class, 'generate'])->name('qr.generate');
@@ -79,47 +81,52 @@ Route::middleware('auth')->group(function () {
         Route::get('/laporan', [LaporanController::class, 'index'])->name('laporan.index');
         Route::get('/laporan/print', [LaporanController::class, 'print'])->name('laporan.print');
 
-        // Absensi Manual
+        // Presensi Manual
         Route::get('/presensi-manual', [PresensiManualController::class, 'create'])->name('presensi.manual');
         Route::post('/presensi-manual', [PresensiManualController::class, 'store'])->name('presensi.store_manual');
 
-        // MODUL ASSESSMENT (EVALUASI)
+        // Modul Penilaian (Assessment)
         Route::prefix('assessment')->name('assessment.')->group(function () {
-            // Kategori
             Route::get('/categories', [AssessmentCategoryController::class, 'index'])->name('categories');
             Route::post('/categories', [AssessmentCategoryController::class, 'store'])->name('categories.store');
-            Route::put('/categories/{id}', [AssessmentCategoryController::class, 'update'])->name('categories.update');
-            Route::delete('/categories/{id}', [AssessmentCategoryController::class, 'destroy'])->name('categories.destroy');
-
-            // Questions
             Route::get('/questions', [QuestionController::class, 'index'])->name('questions.index');
             Route::post('/questions', [QuestionController::class, 'store'])->name('questions.store');
-            Route::put('/questions/{id}', [QuestionController::class, 'update'])->name('questions.update');
-            Route::delete('/questions/{id}', [QuestionController::class, 'destroy'])->name('questions.destroy');
-
-            // Penilaian
             Route::get('/employees', [AssessmentController::class, 'employees'])->name('employees');
             Route::get('/create/{evaluatee_id}', [AssessmentController::class, 'create'])->name('create');
             Route::post('/store', [AssessmentController::class, 'store'])->name('store');
-            Route::get('/edit/{id}', [AssessmentController::class, 'edit'])->name('edit');
-            Route::put('/update/{id}', [AssessmentController::class, 'update'])->name('update');
             Route::get('/report', [AssessmentController::class, 'report'])->name('report');
-            Route::get('/history', [AssessmentController::class, 'history'])->name('history');
             Route::get('/detail/{id}', [AssessmentController::class, 'detail'])->name('detail');
-            Route::delete('/destroy/{id}', [AssessmentController::class, 'destroy'])->name('destroy');
         });
+
+        // MODUL POIN INTEGRITAS (ADMIN)
+        Route::get('/integrity', [PointRuleController::class, 'index'])->name('integrity.index');
+        Route::post('/integrity/rule', [PointRuleController::class, 'storeRule'])->name('integrity.rule.store');
+        Route::delete('/integrity/rule/{id}', [PointRuleController::class, 'destroyRule'])->name('integrity.rule.destroy');
+        Route::post('/integrity/item', [PointRuleController::class, 'storeItem'])->name('integrity.item.store');
+        Route::delete('/integrity/item/{id}', [PointRuleController::class, 'destroyItem'])->name('integrity.item.destroy');
     });
 
     // KHUSUS ROLE KARYAWAN
     Route::prefix('karyawan')->name('karyawan.')->group(function () {
+        // Dashboard & Profil
         Route::get('/dashboard', [KaryawanDashboardController::class, 'index'])->name('dashboard');
         Route::get('/profil', [KaryawanDashboardController::class, 'profil'])->name('profil');
+
+        // Fitur Absensi
         Route::get('/scan', [AbsensiController::class, 'index'])->name('scan');
         Route::post('/absen/store', [AbsensiController::class, 'store'])->name('absen.store');
         Route::get('/jadwal-kerja', [KaryawanDashboardController::class, 'jadwal'])->name('jadwal.index');
+
+        // Fitur Pengajuan Izin
         Route::get('/izin', [PengajuanIzinController::class, 'index'])->name('izin.index');
         Route::get('/izin/create', [PengajuanIzinController::class, 'create'])->name('izin.create');
         Route::post('/izin/store', [PengajuanIzinController::class, 'store'])->name('izin.store');
+
+        // Modul Poin & Wallet (KARYAWAN)
+        Route::get('/wallet', [WalletController::class, 'index'])->name('wallet.index');
+        Route::post('/wallet/exchange/{id}', [WalletController::class, 'exchange'])->name('wallet.exchange');
+
+        // Rapor Penilaian
         Route::get('/laporan-saya', [KaryawanDashboardController::class, 'laporan'])->name('laporan.index');
         Route::get('/rapor-performa', [AssessmentController::class, 'myReport'])->name('rapor');
     });
