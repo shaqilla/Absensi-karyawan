@@ -2,192 +2,163 @@
 
 namespace App\Http\Controllers\Karyawan;
 
-use App\Http\Controllers\Controller; // Induk Class (Inheritance)
+use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-// Import Model (Objek yang mewakili Tabel di Database)
 use App\Models\{Presensi, QrSession, Pengajuan, LokasiKantor, JadwalKerja, PointRule, PointLedger, UserToken};
-use App\Helpers\GeoHelper;       // Helper untuk rumus matematika Haversine
-use Illuminate\Support\Facades\Auth; // Untuk mengambil data user yang sedang login
-use Illuminate\Support\Facades\DB;   // Untuk menjaga keamanan transaksi data
-use Carbon\Carbon;                   // Library untuk manipulasi waktu
+use App\Helpers\GeoHelper;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
-// "class" adalah kerangka besar. "extends" adalah inheritance (pewarisan sifat dari induk)
 class AbsensiController extends Controller
 {
-    // Tampilan Halaman Scan (Metode GET)
     public function index()
     {
-        // "Variable" $lokasi menyimpan "Object" data kantor dari database
         $lokasi = LokasiKantor::first();
-
-        // "Pengkondisian" (If-Else): Cek apakah admin sudah set lokasi?
         if (!$lokasi) {
-            return redirect()->route('karyawan.dashboard')
-                ->with('error', 'Lokasi belum diatur admin!');
+            return redirect()->route('karyawan.dashboard')->with('error', 'Lokasi belum diatur admin!');
         }
-
         return view('karyawan.scan', compact('lokasi'));
     }
 
-    // "Method" Store: Jantung aplikasi untuk memproses absen (Metode POST)
     public function store(Request $request)
     {
-        $lokasi         = LokasiKantor::first();
-        $user           = Auth::user(); // "Object" User yang login
-        $userId         = $user->id;   // "Variable" menyimpan ID
-        $hariIniTanggal = now()->toDateString();
-        $waktuSekarang  = now();
+        $timezone = 'Asia/Jakarta';
+        $waktuSekarang = Carbon::now($timezone);
+        $hariIniTanggal = $waktuSekarang->toDateString();
+        $user = Auth::user();
 
-        // "Array" Asosiatif: Untuk mapping hari Inggris ke Indonesia
-        $hariInggris = now()->format('l');
-        $daftarHari  = [
+        $lokasi = LokasiKantor::first();
+        $mappingHari = [
             'Monday' => 'senin', 'Tuesday' => 'selasa', 'Wednesday' => 'rabu',
-            'Thursday' => 'kamis', 'Friday' => 'jumat',
-            'Saturday' => 'sabtu', 'Sunday' => 'minggu'
+            'Thursday' => 'kamis', 'Friday' => 'jumat', 'Saturday' => 'sabtu', 'Sunday' => 'minggu'
         ];
-        $namaHariIni = $daftarHari[$hariInggris];
+        $namaHariIni = $mappingHari[$waktuSekarang->format('l')];
 
-        // LOGIKA 1: Validasi Jadwal (Cek apakah hari ini jadwalnya masuk?)
-        $jadwal = JadwalKerja::with('shift')
-            ->where('user_id', $userId)
+        $jadwal = JadwalKerja::with('shift')->where('user_id', $user->id)
             ->whereRaw('LOWER(hari) = ?', [$namaHariIni])
-            ->where('status', 'aktif')
-            ->first();
+            ->where('status', 'aktif')->first();
 
-        if (!$jadwal) {
-            return response()->json(['success' => false, 'message' => 'Gak ada jadwal hari ini!'], 422);
-        }
+        if (!$jadwal) return response()->json(['message' => 'Gak ada jadwal hari ini!'], 422);
 
-        // LOGIKA 2: Validasi Geofencing (Jarak GPS)
-        // Memanggil "Function" calculateDistance dari class GeoHelper
-        $jarak = GeoHelper::calculateDistance(
-            $request->lat, $request->lng,
-            $lokasi->latitude, $lokasi->longitude
-        );
+        $jarak = GeoHelper::calculateDistance($request->lat, $request->lng, $lokasi->latitude, $lokasi->longitude);
+        if ($jarak > $lokasi->radius) return response()->json(['message' => 'Gagal! Diluar radius kantor'], 403);
 
-        if ($jarak > $lokasi->radius) {
-            return response()->json(['success' => false, 'message' => 'Gagal! Anda di luar radius kantor.'], 403);
-        }
+        $qr = QrSession::where('token', $request->token)->where('is_active', true)->where('expired_at', '>', $waktuSekarang)->first();
+        if (!$qr) return response()->json(['message' => 'QR Code Kadaluwarsa!'], 403);
 
-        // LOGIKA 3: Validasi QR Code (Token Security)
-        $qr = QrSession::where('token', $request->token)->where('is_active', true)->where('expired_at', '>', now())->first();
-        if (!$qr) {
-            return response()->json(['success' => false, 'message' => 'QR Code Kadaluwarsa!'], 403);
-        }
-
-        // LOGIKA 4: Persiapan Waktu Shift (Temporal Validation)
-        $jamMasukShift  = Carbon::parse($hariIniTanggal . ' ' . $jadwal->shift->jam_masuk);
+        $jamMasukShift = Carbon::createFromFormat('Y-m-d H:i:s', $hariIniTanggal . ' ' . $jadwal->shift->jam_masuk, $timezone);
         $batasToleransi = $jamMasukShift->copy()->addMinutes($jadwal->shift->toleransi_telat);
-        $jamPulangShift = Carbon::parse($hariIniTanggal . ' ' . $jadwal->shift->jam_keluar);
+        $jamPulangShift = Carbon::createFromFormat('Y-m-d H:i:s', $hariIniTanggal . ' ' . $jadwal->shift->jam_keluar, $timezone);
 
-        // Cek apakah sudah ada baris absen hari ini? (Prinsip Satu Row per Hari)
-        $presensi = Presensi::where('user_id', $userId)->where('tanggal', $hariIniTanggal)->first();
+        $presensi = Presensi::where('user_id', $user->id)->where('tanggal', $hariIniTanggal)->first();
 
-        // "DB::beginTransaction" untuk memastikan data aman jika terjadi error di tengah jalan
         DB::beginTransaction();
         try {
             if (!$presensi) {
-                // LOGIKA ABSEN MASUK (INSERT/CREATE)
-
-                // Cek kalau terlalu pagi (Overloading: membandingkan waktu)
-                if ($waktuSekarang->lt($jamMasukShift)) {
-                    return response()->json(['success' => false, 'message' => 'Belum masuk jam kerja!']);
+                // --- LOGIKA ABSEN MASUK ---
+                if ($waktuSekarang->lt($jamMasukShift->copy()->subMinutes(60))) {
+                    return response()->json(['message' => 'Belum masuk jam kerja!'], 422);
                 }
 
                 $status = 'hadir';
                 $keterangan = 'Hadir Tepat Waktu';
+                $tokenObj = null;
 
-                // FITUR BARU: TOKEN INTERCEPTOR (GAMIFIKASI)
-                // Jika waktu sekarang melebihi toleransi, cek apakah punya "Token Kelonggaran"
+                // --- CEK TERLAMBAT ---
                 if ($waktuSekarang->gt($batasToleransi)) {
-                    $token = UserToken::where('user_id', $userId)
+                    // Cari Token "Bebas Telat"
+                    $tokenObj = UserToken::where('user_id', $user->id)
                                 ->where('status', 'AVAILABLE')
                                 ->whereHas('item', function($q) {
-                                    $q->where('item_name', 'LIKE', '%Terlambat%');
+                                    $q->where('item_name', 'LIKE', '%Telat%')
+                                      ->orWhere('item_name', 'LIKE', '%Terlambat%');
                                 })->first();
 
-                    if ($token) {
-                        $status = 'hadir'; // Status dipaksa jadi Hadir karena pake Token
-                        $keterangan = 'Hadir (Token ' . $token->item->item_name . ' digunakan)';
-                        $token->update(['status' => 'USED']); // Token berubah jadi Terpakai
-                    } else {    
+                    if ($tokenObj) {
+                        $status = 'hadir';
+                        $keterangan = 'Hadir (Pakai Voucher: ' . $tokenObj->item->item_name . ')';
+                    } else {
                         $status = 'telat';
-                        $keterangan = 'Terlambat (Tanpa Token)';
+                        $keterangan = 'Terlambat (Tanpa Voucher)';
+
+                        // CARI ATURAN DENDA (Gak peduli huruf besar/kecil)
+                        $ruleTelat = PointRule::whereRaw('LOWER(rule_name) = ?', ['telat'])
+                                    ->orWhereRaw('LOWER(rule_name) = ?', ['terlambat'])
+                                    ->first();
+
+                        if ($ruleTelat) {
+                            $lastL = PointLedger::where('user_id', $user->id)->latest()->first();
+                            $currentBal = $lastL ? $lastL->current_balance : 0;
+
+                            PointLedger::create([
+                                'user_id' => $user->id,
+                                'transaction_type' => 'PENALTY',
+                                'amount' => $ruleTelat->point_modifier, // Minus
+                                'current_balance' => $currentBal + $ruleTelat->point_modifier,
+                                'description' => 'Denda Terlambat: ' . $hariIniTanggal
+                            ]);
+                        }
                     }
                 }
 
-                // Simpan data (INSERT transaksi baru)
-                Presensi::create([
-                    'user_id'       => $userId,
+                $newP = Presensi::create([
+                    'user_id' => $user->id,
                     'qr_session_id' => $qr->id,
-                    'shift_id'      => $jadwal->shift_id, // SNAPSHOT: Kunci aturan shift saat ini
-                    'tanggal'       => $hariIniTanggal,
-                    'jam_masuk'     => $waktuSekarang,
-                    'latitude'      => $request->lat,
-                    'longitude'     => $request->lng,
-                    'status'        => $status,
-                    'keterangan'    => $keterangan,
-                    'kategori_id'   => 1
+                    'shift_id' => $jadwal->shift_id,
+                    'tanggal' => $hariIniTanggal,
+                    'jam_masuk' => $waktuSekarang->toDateTimeString(),
+                    'status' => $status,
+                    'keterangan' => $keterangan,
+                    'latitude' => $request->lat,
+                    'longitude' => $request->lng,
+                    'kategori_id' => 1
                 ]);
 
-                // FITUR BARU: RULE ENGINE (POIN OTOMATIS)
-                // Memanggil fungsi internal untuk hitung poin
-                $this->applyPointRules($user, $waktuSekarang);
+                // MATIKAN VOUCHER (JADI USED)
+                if ($tokenObj) {
+                    $tokenObj->update(['status' => 'USED', 'used_at_attendance_id' => $newP->id]);
+                }
 
-                DB::commit(); // Simpan permanen
-                return response()->json(['success' => true, 'message' => $keterangan]);
+                // Berikan Poin Hadir Pagi (Jika status Hadir & Tepat Waktu)
+                if ($status == 'hadir') {
+                    $this->applyPointRules($user, $waktuSekarang);
+                }
+
+                DB::commit();
+                return response()->json(['message' => $keterangan], 200);
 
             } else {
-                // LOGIKA ABSEN PULANG (UPDATE)
+                // --- LOGIKA ABSEN PULANG ---
+                if ($presensi->jam_keluar) return response()->json(['message' => 'Udah absen pulang!'], 422);
+                if ($waktuSekarang->lt($jamPulangShift)) return response()->json(['message' => 'Belum jam pulang!'], 422);
 
-                if ($presensi->jam_keluar != null) {
-                    return response()->json(['success' => false, 'message' => 'Udah absen pulang!']);
-                }
-
-                // Proteksi Pulang Awal (Early Clock-out Protection)
-                if ($waktuSekarang->lt($jamPulangShift)) {
-                    return response()->json(['success' => false, 'message' => 'Belum jam pulang!']);
-                }
-
-                $presensi->update(['jam_keluar' => $waktuSekarang]); // Mengupdate baris yang sama
+                $presensi->update(['jam_keluar' => $waktuSekarang->toDateTimeString()]);
                 DB::commit();
-                return response()->json(['success' => true, 'message' => 'Berhasil absen pulang!']);
+                return response()->json(['message' => 'Berhasil absen pulang!'], 200);
             }
         } catch (\Exception $e) {
-            DB::rollback(); // Batalkan semua jika error
-            return response()->json(['success' => false, 'message' => 'Gagal: ' . $e->getMessage()]);
+            DB::rollback();
+            return response()->json(['message' => 'Sistem Error: ' . $e->getMessage()], 500);
         }
     }
 
-    // "Private Method" applyPointRules: Mesin aturan poin dinamis
-    // Ini dipanggil di dalam method store (modularitas program)
     private function applyPointRules($user, $waktuSekarang)
     {
-        // Ambil aturan (Rules) yang dibuat Admin
-        $rules = PointRule::where('target_role', $user->role)->get();
+        $rules = PointRule::where('target_role', $user->role)->where('point_modifier', '>', 0)->get();
+        $lastL = PointLedger::where('user_id', $user->id)->latest()->first();
+        $balance = $lastL ? $lastL->current_balance : 0;
 
-        // Ambil saldo poin terakhir dari tabel Ledger (Audit Trail)
-        $lastLedger = PointLedger::where('user_id', $user->id)->latest()->first();
-        $currentBalance = $lastLedger ? $lastLedger->current_balance : 0;
-
-        // "Pengulangan" (Foreach): Cek satu per satu aturan yang cocok dengan jam absen
         foreach ($rules as $rule) {
-            $apply = false;
-            $nowTime = $waktuSekarang->toTimeString();
-
-            if ($rule->condition_operator == '<' && $nowTime <= $rule->condition_value) $apply = true;
-            if ($rule->condition_operator == '>' && $nowTime >= $rule->condition_value) $apply = true;
-
-            if ($apply) {
-                // "Object" PointLedger: Mencatat mutasi poin (seperti rekening bank)
+            if ($rule->condition_operator == '<' && $waktuSekarang->toTimeString() <= $rule->condition_value) {
                 PointLedger::create([
                     'user_id' => $user->id,
-                    'transaction_type' => $rule->point_modifier > 0 ? 'EARN' : 'PENALTY',
+                    'transaction_type' => 'EARN',
                     'amount' => $rule->point_modifier,
-                    'current_balance' => $currentBalance + $rule->point_modifier,
-                    'description' => 'Poin Otomatis: ' . $rule->rule_name
+                    'current_balance' => $balance + $rule->point_modifier,
+                    'description' => 'Bonus Absen: ' . $rule->rule_name
                 ]);
-                break; // Berhenti jika sudah menemukan satu aturan yang cocok
+                break;
             }
         }
     }

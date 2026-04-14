@@ -107,7 +107,7 @@
                     Integritas</p>
                 <a href="{{ route('karyawan.wallet.index') }}" class="flex items-center p-3 rounded-xl transition {{ request()->routeIs('karyawan.wallet.*') ? 'bg-indigo-600 text-white shadow-lg' : 'text-indigo-200 hover:bg-indigo-900' }}">
                     <i class="fas fa-wallet w-6 text-center text-emerald-400"></i>
-                    <span class="ml-3 font-bold text-sm uppercase sidebar-text">Dompet Poin</span>
+                    <span class="ml-3 font-bold text-sm uppercase sidebar-text">Gamifikasi Point</span>
                 </a>
             </nav>
         </aside>

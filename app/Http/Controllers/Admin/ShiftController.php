@@ -46,19 +46,20 @@ class ShiftController extends Controller
     }
 
     // HAPUS SHIFT DARI DATABASE
-    public function destroy($id) 
+    public function destroy($id)
     {
-        // Cari shift yang akan dihapus, kalau tidak ada → error 404
-        $shift = Shift::findOrFail($id);
+        $shift = \App\Models\Shift::findOrFail($id);
 
-        // WAJIB hapus dulu semua jadwal kerja yang memakai shift ini
-        // Karena shift_id di tabel jadwal_kerja adalah Foreign Key
-        // Kalau shift dihapus duluan → error karena jadwal masih merujuk ke shift ini
-        \App\Models\JadwalKerja::where('shift_id', $id)->delete();
+        // Cek apakah sudah pernah dipakai absen
+        $sudahDipakai = \App\Models\Presensi::where('shift_id', $id)->exists();
 
-        // Baru hapus shift-nya setelah semua jadwal terkait sudah dihapus
+        if ($sudahDipakai) {
+            // Jangan dihapus, tapi nonaktifkan saja
+            $shift->update(['status' => 'nonaktif']);
+            return back()->with('success', 'Shift tidak bisa dihapus karena punya riwayat absen. Status diubah menjadi Non-Aktif.');
+        }
+
         $shift->delete();
-
         return back()->with('success', 'Shift berhasil dihapus!');
     }
 }

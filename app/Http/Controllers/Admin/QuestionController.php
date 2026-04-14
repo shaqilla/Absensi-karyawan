@@ -13,8 +13,17 @@ class QuestionController extends Controller {
     }
 
     public function store(Request $request) {
-        $request->validate(['category_id' => 'required', 'question' => 'required']);
-        AssessmentQuestion::create($request->all());
+        $request->validate([
+            'category_id' => 'required|exists:assessment_categories,id',
+            'question' => 'required'
+        ]);
+
+        AssessmentQuestion::create([
+            'category_id' => $request->category_id,
+            'question' => $request->question,
+            'is_active' => true // Pastikan ini masuk supaya muncul di penilaian
+        ]);
+
         return back()->with('success', 'Pertanyaan berhasil ditambah!');
     }
 

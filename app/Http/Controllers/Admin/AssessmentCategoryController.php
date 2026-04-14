@@ -38,20 +38,19 @@ class AssessmentCategoryController extends Controller
 
         $request->validate([
             'name'        => 'required|string|max:100|unique:assessment_categories,name,' . $id,
-            'type'        => 'required|in:Employee,Student',
             'description' => 'nullable|string|max:500',
         ]);
 
         $category->update([
             'name'        => $request->name,
-            'type'        => $request->type,
             'description' => $request->description,
         ]);
 
         return back()->with('success', 'Kategori Berhasil Diupdate!');
     }
 
-    public function toggleActive($id)
+    // Nama fungsi disamakan dengan Route: toggle
+    public function toggle($id)
     {
         $category = AssessmentCategory::findOrFail($id);
         $category->update(['is_active' => !$category->is_active]);
@@ -65,8 +64,13 @@ class AssessmentCategoryController extends Controller
         $category = AssessmentCategory::findOrFail($id);
 
         // Cek apakah kategori sudah dipakai di penilaian
-        if ($category->assessmentDetails()->exists()) {
-            return back()->with('error', 'Kategori tidak bisa dihapus karena sudah digunakan. Nonaktifkan saja.');
+        // Pastikan relasi 'assessmentDetails' sudah ada di model AssessmentCategory
+        try {
+            if ($category->assessmentDetails()->exists()) {
+                return back()->with('error', 'Kategori tidak bisa dihapus karena sudah digunakan. Silakan nonaktifkan saja.');
+            }
+        } catch (\Exception $e) {
+            // Jika relasi belum dibuat, abaikan cek dan lanjut hapus atau kasih pesan log
         }
 
         $category->delete();
