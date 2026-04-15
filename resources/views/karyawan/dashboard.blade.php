@@ -23,42 +23,41 @@
                 <p class="text-indigo-200 text-[10px] font-black uppercase tracking-[0.2em]">Saldo Poin Integritas</p>
             </div>
             <div class="flex items-end gap-3">
-                <!-- Memanggil fungsi currentPoints dari Model User -->
                 <h1 class="text-5xl font-black tracking-tighter">{{ auth()->user()->currentPoints() }}</h1>
                 <p class="text-indigo-300 font-black mb-1 uppercase text-xs tracking-widest">Points</p>
             </div>
 
-            <!-- Tombol Cepat Marketplace -->
             <div class="mt-8 flex flex-wrap gap-3">
-                <a href="#" class="bg-white text-indigo-900 hover:bg-indigo-50 px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition shadow-lg flex items-center">
+                <a href="{{ route('karyawan.wallet.index') }}" class="bg-white text-indigo-900 hover:bg-indigo-50 px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition shadow-lg flex items-center">
                     <i class="fas fa-store mr-2"></i> Tukar Poin
                 </a>
-                <a href="#" class="bg-indigo-800/50 hover:bg-indigo-800 px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition border border-indigo-700 flex items-center">
+                <a href="{{ route('karyawan.wallet.index') }}" class="bg-indigo-800/50 hover:bg-indigo-800 px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition border border-indigo-700 flex items-center">
                     <i class="fas fa-exchange-alt mr-2 text-indigo-400"></i> Riwayat Poin
                 </a>
             </div>
         </div>
-        <!-- Background Decor (Koin Gede transparan) -->
         <i class="fas fa-coins absolute -right-10 -bottom-10 text-[15rem] opacity-10 rotate-12"></i>
     </div>
 
 
     <!-- GRID STATISTIK -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-        <!-- Log Presensi -->
+        <!-- Log Presensi: DI SINI PERBAIKANNYA -->
         <div class="bg-white p-6 md:p-8 rounded-[2rem] shadow-sm border border-gray-100 transition-all hover:shadow-md">
             <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 border-b pb-2">Log Hari Ini</p>
             <div class="space-y-3">
                 <div class="flex justify-between items-center">
                     <span class="text-[10px] font-bold text-gray-400 uppercase">Masuk</span>
-                    <span class="text-sm font-black {{ $presensiHariIni ? 'text-emerald-600' : 'text-gray-300' }}">
-                        {{ $presensiHariIni ? date('H:i', strtotime($presensiHariIni->jam_masuk)) : '--:--' }}
+                    {{-- Hanya tampilkan jam kalau status BUKAN alpha --}}
+                    <span class="text-sm font-black {{ ($presensiHariIni && $presensiHariIni->status != 'alpha') ? 'text-emerald-600' : 'text-gray-300' }}">
+                        {{ ($presensiHariIni && $presensiHariIni->status != 'alpha') ? date('H:i', strtotime($presensiHariIni->jam_masuk)) : '--:--' }}
                     </span>
                 </div>
                 <div class="flex justify-between items-center border-t border-gray-50 pt-2">
                     <span class="text-[10px] font-bold text-gray-400 uppercase">Pulang</span>
-                    <span class="text-sm font-black {{ ($presensiHariIni && $presensiHariIni->jam_keluar) ? 'text-rose-600' : 'text-gray-300' }}">
-                        {{ ($presensiHariIni && $presensiHariIni->jam_keluar) ? date('H:i', strtotime($presensiHariIni->jam_keluar)) : '--:--' }}
+                    {{-- Hanya tampilkan jam kalau status BUKAN alpha dan jam_keluar ada --}}
+                    <span class="text-sm font-black {{ ($presensiHariIni && $presensiHariIni->jam_keluar && $presensiHariIni->status != 'alpha') ? 'text-rose-600' : 'text-gray-300' }}">
+                        {{ ($presensiHariIni && $presensiHariIni->jam_keluar && $presensiHariIni->status != 'alpha') ? date('H:i', strtotime($presensiHariIni->jam_keluar)) : '--:--' }}
                     </span>
                 </div>
             </div>
@@ -80,13 +79,13 @@
             @endif
         </div>
 
-        <!-- AKSI DINAMIS -->
+        <!-- AKSI DINAMIS: DI SINI PERBAIKANNYA -->
         <div class="relative overflow-hidden h-full min-h-[140px]">
-            @if($isAlpha)
+            @if($isAlpha || ($presensiHariIni && $presensiHariIni->status == 'alpha'))
                 <div class="bg-slate-900 p-6 md:p-8 rounded-[2rem] shadow-xl flex items-center justify-between h-full border-b-4 border-rose-600 text-white">
                     <div>
                         <p class="text-rose-500 text-[10px] font-black uppercase mb-1">Status</p>
-                        <h4 class="font-black text-xl leading-tight uppercase">TIDAK MASUK<br>(ALPHA)</h4>
+                        <h4 class="font-black text-xl leading-tight uppercase">TIDAK MASUK KERJA<br>(ALPHA)</h4>
                     </div>
                     <i class="fas fa-user-times text-4xl opacity-20"></i>
                 </div>
@@ -99,7 +98,7 @@
                 <div class="bg-indigo-600 p-6 md:p-8 rounded-[2rem] shadow-xl flex flex-col justify-center h-full hover:bg-indigo-700 transition">
                     <a href="{{ route('karyawan.scan') }}" class="bg-white text-indigo-600 py-4 rounded-2xl font-black text-center text-xs uppercase tracking-widest shadow-lg">SCAN MASUK</a>
                 </div>
-            @elseif($presensiHariIni && !$presensiHariIni->jam_keluar)
+            @elseif($presensiHariIni && !$presensiHariIni->jam_keluar && $presensiHariIni->status != 'alpha')
                 <div class="bg-rose-600 p-8 rounded-[2rem] shadow-xl flex flex-col justify-center h-full hover:bg-rose-700 transition">
                     <a href="{{ route('karyawan.scan') }}" class="bg-white text-rose-600 py-4 rounded-2xl font-black text-center text-xs uppercase tracking-widest shadow-lg">SCAN PULANG</a>
                 </div>
@@ -134,8 +133,12 @@
                         <td class="p-6">
                             <span class="font-bold text-gray-700">{{ \Carbon\Carbon::parse($r->tanggal)->format('d F Y') }}</span>
                         </td>
-                        <td class="p-6 text-center font-mono font-bold {{ $r->status == 'alpha' ? 'text-gray-300' : 'text-slate-600' }}">{{ $r->jam_masuk }}</td>
-                        <td class="p-6 text-center font-mono font-bold {{ $r->status == 'alpha' ? 'text-gray-300' : 'text-slate-600' }}">{{ $r->jam_keluar }}</td>
+                        <td class="p-6 text-center font-mono font-bold {{ $r->status == 'alpha' ? 'text-gray-300' : 'text-slate-600' }}">
+                            {{ ($r->status == 'alpha') ? '--:--' : date('H:i', strtotime($r->jam_masuk)) }}
+                        </td>
+                        <td class="p-6 text-center font-mono font-bold {{ $r->status == 'alpha' ? 'text-gray-300' : 'text-slate-600' }}">
+                            {{ ($r->status == 'alpha' || !$r->jam_keluar) ? '--:--' : date('H:i', strtotime($r->jam_keluar)) }}
+                        </td>
                         <td class="p-6 text-center">
                             @php
                                 $color = [

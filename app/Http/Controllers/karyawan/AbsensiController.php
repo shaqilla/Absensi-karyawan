@@ -30,8 +30,13 @@ class AbsensiController extends Controller
 
         $lokasi = LokasiKantor::first();
         $mappingHari = [
-            'Monday' => 'senin', 'Tuesday' => 'selasa', 'Wednesday' => 'rabu',
-            'Thursday' => 'kamis', 'Friday' => 'jumat', 'Saturday' => 'sabtu', 'Sunday' => 'minggu'
+            'Monday' => 'senin',
+            'Tuesday' => 'selasa',
+            'Wednesday' => 'rabu',
+            'Thursday' => 'kamis',
+            'Friday' => 'jumat',
+            'Saturday' => 'sabtu',
+            'Sunday' => 'minggu'
         ];
         $namaHariIni = $mappingHari[$waktuSekarang->format('l')];
 
@@ -56,7 +61,6 @@ class AbsensiController extends Controller
         DB::beginTransaction();
         try {
             if (!$presensi) {
-                // --- LOGIKA ABSEN MASUK ---
                 if ($waktuSekarang->lt($jamMasukShift->copy()->subMinutes(60))) {
                     return response()->json(['message' => 'Belum masuk jam kerja!'], 422);
                 }
@@ -65,15 +69,13 @@ class AbsensiController extends Controller
                 $keterangan = 'Hadir Tepat Waktu';
                 $tokenObj = null;
 
-                // --- CEK TERLAMBAT ---
                 if ($waktuSekarang->gt($batasToleransi)) {
-                    // Cari Token "Bebas Telat"
                     $tokenObj = UserToken::where('user_id', $user->id)
-                                ->where('status', 'AVAILABLE')
-                                ->whereHas('item', function($q) {
-                                    $q->where('item_name', 'LIKE', '%Telat%')
-                                      ->orWhere('item_name', 'LIKE', '%Terlambat%');
-                                })->first();
+                        ->where('status', 'AVAILABLE')
+                        ->whereHas('item', function ($q) {
+                            $q->where('item_name', 'LIKE', '%Telat%')
+                                ->orWhere('item_name', 'LIKE', '%Terlambat%');
+                        })->first();
 
                     if ($tokenObj) {
                         $status = 'hadir';
@@ -82,20 +84,20 @@ class AbsensiController extends Controller
                         $status = 'telat';
                         $keterangan = 'Terlambat (Tanpa Voucher)';
 
-                        // CARI ATURAN DENDA (Gak peduli huruf besar/kecil)
                         $ruleTelat = PointRule::whereRaw('LOWER(rule_name) = ?', ['telat'])
-                                    ->orWhereRaw('LOWER(rule_name) = ?', ['terlambat'])
-                                    ->first();
+                            ->orWhereRaw('LOWER(rule_name) = ?', ['terlambat'])
+                            ->first();
 
                         if ($ruleTelat) {
-                            $lastL = PointLedger::where('user_id', $user->id)->latest()->first();
-                            $currentBal = $lastL ? $lastL->current_balance : 0;
+                            // FIX 1: Ambil saldo terakhir berdasarkan ID (lebih akurat dari latest())
+                            $lastL = PointLedger::where('user_id', $user->id)->orderBy('id', 'desc')->first();
+                            $currentBal = $lastL ? (int)$lastL->current_balance : 0;
 
                             PointLedger::create([
                                 'user_id' => $user->id,
                                 'transaction_type' => 'PENALTY',
-                                'amount' => $ruleTelat->point_modifier, // Minus
-                                'current_balance' => $currentBal + $ruleTelat->point_modifier,
+                                'amount' => $ruleTelat->point_modifier,
+                                'current_balance' => $currentBal + (int)$ruleTelat->point_modifier,
                                 'description' => 'Denda Terlambat: ' . $hariIniTanggal
                             ]);
                         }
@@ -115,21 +117,20 @@ class AbsensiController extends Controller
                     'kategori_id' => 1
                 ]);
 
-                // MATIKAN VOUCHER (JADI USED)
+                // FIX 2: Paksa update token pakai save() biar pasti berubah di database
                 if ($tokenObj) {
-                    $tokenObj->update(['status' => 'USED', 'used_at_attendance_id' => $newP->id]);
+                    $tokenObj->status = 'USED';
+                    $tokenObj->used_at_attendance_id = $newP->id;
+                    $tokenObj->save();
                 }
 
-                // Berikan Poin Hadir Pagi (Jika status Hadir & Tepat Waktu)
                 if ($status == 'hadir') {
                     $this->applyPointRules($user, $waktuSekarang);
                 }
 
                 DB::commit();
                 return response()->json(['message' => $keterangan], 200);
-
             } else {
-                // --- LOGIKA ABSEN PULANG ---
                 if ($presensi->jam_keluar) return response()->json(['message' => 'Udah absen pulang!'], 422);
                 if ($waktuSekarang->lt($jamPulangShift)) return response()->json(['message' => 'Belum jam pulang!'], 422);
 
@@ -146,8 +147,9 @@ class AbsensiController extends Controller
     private function applyPointRules($user, $waktuSekarang)
     {
         $rules = PointRule::where('target_role', $user->role)->where('point_modifier', '>', 0)->get();
-        $lastL = PointLedger::where('user_id', $user->id)->latest()->first();
-        $balance = $lastL ? $lastL->current_balance : 0;
+        // FIX 3: Gunakan orderBy ID desc untuk saldo yang konsisten
+        $lastL = PointLedger::where('user_id', $user->id)->orderBy('id', 'desc')->first();
+        $balance = $lastL ? (int)$lastL->current_balance : 0;
 
         foreach ($rules as $rule) {
             if ($rule->condition_operator == '<' && $waktuSekarang->toTimeString() <= $rule->condition_value) {
@@ -155,7 +157,7 @@ class AbsensiController extends Controller
                     'user_id' => $user->id,
                     'transaction_type' => 'EARN',
                     'amount' => $rule->point_modifier,
-                    'current_balance' => $balance + $rule->point_modifier,
+                    'current_balance' => $balance + (int)$rule->point_modifier,
                     'description' => 'Bonus Absen: ' . $rule->rule_name
                 ]);
                 break;

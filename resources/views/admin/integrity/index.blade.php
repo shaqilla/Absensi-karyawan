@@ -18,7 +18,15 @@
                         <td class="py-4 font-bold uppercase">{{ $r->rule_name }}</td>
                         <td class="py-4 text-center font-black {{ $r->point_modifier > 0 ? 'text-emerald-600' : 'text-rose-600' }}">{{ $r->point_modifier }}</td>
                         <td class="py-4 text-center">
-                            <form action="{{ route('admin.integrity.rule.destroy', $r->id) }}" method="POST">@csrf @method('DELETE')<button class="text-rose-500"><i class="fas fa-trash"></i></button></form>
+                            <div class="flex justify-center gap-3">
+                                <button onclick="openEditRule({{ $r->id }}, '{{ $r->rule_name }}', '{{ $r->condition_operator }}', '{{ $r->condition_value }}', {{ $r->point_modifier }})" class="text-indigo-600 hover:text-indigo-800">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <form action="{{ route('admin.integrity.rule.destroy', $r->id) }}" method="POST">
+                                    @csrf @method('DELETE')
+                                    <button class="text-rose-500 hover:text-rose-700"><i class="fas fa-trash"></i></button>
+                                </form>
+                            </div>
                         </td>
                     </tr>
                     @endforeach
@@ -40,7 +48,15 @@
                         <td class="py-4 font-bold uppercase">{{ $i->item_name }}</td>
                         <td class="py-4 text-center font-black text-amber-600">{{ $i->point_cost }} Poin</td>
                         <td class="py-4 text-center">
-                            <form action="{{ route('admin.integrity.item.destroy', $i->id) }}" method="POST">@csrf @method('DELETE')<button class="text-rose-500"><i class="fas fa-trash"></i></button></form>
+                            <div class="flex justify-center gap-3">
+                                <button onclick="openEditItem({{ $i->id }}, '{{ $i->item_name }}', {{ $i->point_cost }})" class="text-amber-600 hover:text-amber-800">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <form action="{{ route('admin.integrity.item.destroy', $i->id) }}" method="POST">
+                                    @csrf @method('DELETE')
+                                    <button class="text-rose-500 hover:text-rose-700"><i class="fas fa-trash"></i></button>
+                                </form>
+                            </div>
                         </td>
                     </tr>
                     @endforeach
@@ -49,8 +65,9 @@
         </div>
     </div>
 
-    <!-- 3. LEADERBOARD INTEGRITAS (MUNCUL DI BAWAH) -->
+    <!-- Leaderboard tetap sama ... -->
     <div class="mt-12 bg-white rounded-[3rem] p-10 border border-slate-100 shadow-sm">
+        {{-- Isinya sama seperti kodinganmu sebelumnya --}}
         <div class="flex items-center justify-between mb-8">
             <div>
                 <h3 class="text-xl font-black text-slate-800 uppercase tracking-tighter">Peringkat Poin Teratas</h3>
@@ -65,41 +82,22 @@
             @foreach($rankings as $index => $rank)
             @php
                 $posisi = $index + 1;
-                // Logika Penentuan Warna Box Angka
-                $bgCircle = 'bg-slate-800'; // Default buat ranking 4++
+                $bgCircle = 'bg-slate-800';
                 $shadowColor = 'shadow-slate-100';
-
-                if ($posisi == 1) {
-                    $bgCircle = 'bg-gradient-to-br from-amber-300 to-amber-500';
-                    $shadowColor = 'shadow-amber-200';
-                } elseif ($posisi == 2) {
-                    $bgCircle = 'bg-gradient-to-br from-slate-300 to-slate-400';
-                    $shadowColor = 'shadow-slate-200';
-                } elseif ($posisi == 3) {
-                    $bgCircle = 'bg-gradient-to-br from-orange-300 to-orange-500';
-                    $shadowColor = 'shadow-orange-200';
-                }
+                if ($posisi == 1) { $bgCircle = 'bg-gradient-to-br from-amber-300 to-amber-500'; $shadowColor = 'shadow-amber-200'; }
+                elseif ($posisi == 2) { $bgCircle = 'bg-gradient-to-br from-slate-300 to-slate-400'; $shadowColor = 'shadow-slate-200'; }
+                elseif ($posisi == 3) { $bgCircle = 'bg-gradient-to-br from-orange-300 to-orange-500'; $shadowColor = 'shadow-orange-200'; }
             @endphp
-
             <div class="flex items-center p-5 bg-white rounded-3xl border border-slate-100 relative group hover:border-indigo-500 hover:shadow-xl hover:shadow-indigo-50/50 transition-all duration-300">
-                <!-- Angka Ranking -->
                 <div class="w-12 h-12 rounded-2xl flex items-center justify-center font-black text-white mr-4 {{ $bgCircle }} shadow-lg {{ $shadowColor }} shrink-0">
                     {{ $posisi }}
                 </div>
-
-                <!-- Nama & Poin -->
                 <div class="min-w-0 flex-1">
-                    <p class="text-xs font-black text-slate-800 uppercase leading-none truncate" title="{{ $rank->nama }}">
-                        {{ $rank->nama }}
-                    </p>
+                    <p class="text-xs font-black text-slate-800 uppercase leading-none truncate" title="{{ $rank->nama }}">{{ $rank->nama }}</p>
                     <div class="flex items-center mt-2">
-                        <span class="text-[10px] bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-md font-bold">
-                            {{ number_format($rank->currentPoints(), 0, ',', '.') }} PTS
-                        </span>
+                        <span class="text-[10px] bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-md font-bold">{{ number_format($rank->currentPoints(), 0, ',', '.') }} PTS</span>
                     </div>
                 </div>
-
-                <!-- Icon Spesial Peringkat 1 -->
                 @if($posisi == 1)
                 <div class="absolute -top-3 -right-1 bg-amber-400 w-8 h-8 rounded-full flex items-center justify-center shadow-lg border-4 border-white">
                     <i class="fas fa-crown text-white text-[10px]"></i>
@@ -111,9 +109,9 @@
     </div>
 </div>
 
-<!-- Modal Aturan -->
+<!-- Modal Aturan (Tambah) - Tetap sama -->
 <div id="modalRule" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-    <div class="bg-white rounded-[2.5rem] p-10 max-w-md w-full shadow-2xl">
+    <div class="bg-white rounded-[2.5rem] p-10 max-w-md w-full shadow-2xl text-black">
         <h2 class="text-xl font-black mb-6 uppercase">Aturan Poin Baru</h2>
         <form action="{{ route('admin.integrity.rule.store') }}" method="POST">
             @csrf
@@ -128,16 +126,39 @@
                 <input type="hidden" name="target_role" value="karyawan">
             </div>
             <div class="mt-8 flex gap-3">
-                <button type="button" onclick="this.closest('#modalRule').classList.add('hidden')" class="flex-1 py-4 bg-gray-100 rounded-xl font-black uppercase text-xs">Batal</button>
+                <button type="button" onclick="document.getElementById('modalRule').classList.add('hidden')" class="flex-1 py-4 bg-gray-100 rounded-xl font-black uppercase text-xs">Batal</button>
                 <button type="submit" class="flex-1 py-4 bg-indigo-600 text-white rounded-xl font-black uppercase text-xs">Simpan</button>
             </div>
         </form>
     </div>
 </div>
 
-<!-- Modal Item -->
+<!-- Modal Edit Aturan (BARU) -->
+<div id="modalEditRule" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+    <div class="bg-white rounded-[2.5rem] p-10 max-w-md w-full shadow-2xl text-black">
+        <h2 class="text-xl font-black mb-6 uppercase text-indigo-600">Edit Aturan Poin</h2>
+        <form id="formEditRule" method="POST">
+            @csrf @method('PUT')
+            <div class="space-y-4">
+                <input type="text" name="rule_name" id="edit_rule_name" class="w-full border rounded-xl p-4 border-gray-200" required>
+                <select name="condition_operator" id="edit_rule_operator" class="w-full border rounded-xl p-4 border-gray-200">
+                    <option value="<">Mencapai Sebelum ( < )</option>
+                    <option value=">">Melewati Jam ( > )</option>
+                </select>
+                <input type="time" name="condition_value" id="edit_rule_value" class="w-full border rounded-xl p-4 border-gray-200" required>
+                <input type="number" name="point_modifier" id="edit_rule_modifier" class="w-full border rounded-xl p-4 border-gray-200" required>
+            </div>
+            <div class="mt-8 flex gap-3">
+                <button type="button" onclick="document.getElementById('modalEditRule').classList.add('hidden')" class="flex-1 py-4 bg-gray-100 rounded-xl font-black uppercase text-xs">Batal</button>
+                <button type="submit" class="flex-1 py-4 bg-indigo-600 text-white rounded-xl font-black uppercase text-xs">Update</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal Item (Tambah) - Tetap sama -->
 <div id="modalItem" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-    <div class="bg-white rounded-[2.5rem] p-10 max-w-md w-full shadow-2xl">
+    <div class="bg-white rounded-[2.5rem] p-10 max-w-md w-full shadow-2xl text-black">
         <h2 class="text-xl font-black mb-6 uppercase text-amber-600">Reward Baru</h2>
         <form action="{{ route('admin.integrity.item.store') }}" method="POST">
             @csrf
@@ -146,10 +167,46 @@
                 <input type="number" name="point_cost" placeholder="Harga Poin (Cth: 50)" class="w-full border rounded-xl p-4 border-gray-200" required>
             </div>
             <div class="mt-8 flex gap-3">
-                <button type="button" onclick="this.closest('#modalItem').classList.add('hidden')" class="flex-1 py-4 bg-gray-100 rounded-xl font-black uppercase text-xs">Batal</button>
+                <button type="button" onclick="document.getElementById('modalItem').classList.add('hidden')" class="flex-1 py-4 bg-gray-100 rounded-xl font-black uppercase text-xs">Batal</button>
                 <button type="submit" class="flex-1 py-4 bg-amber-500 text-white rounded-xl font-black uppercase text-xs">Simpan</button>
             </div>
         </form>
     </div>
 </div>
+
+<!-- Modal Edit Item (BARU) -->
+<div id="modalEditItem" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+    <div class="bg-white rounded-[2.5rem] p-10 max-w-md w-full shadow-2xl text-black">
+        <h2 class="text-xl font-black mb-6 uppercase text-amber-600">Edit Reward</h2>
+        <form id="formEditItem" method="POST">
+            @csrf @method('PUT')
+            <div class="space-y-4">
+                <input type="text" name="item_name" id="edit_item_name" class="w-full border rounded-xl p-4 border-gray-200" required>
+                <input type="number" name="point_cost" id="edit_item_cost" class="w-full border rounded-xl p-4 border-gray-200" required>
+            </div>
+            <div class="mt-8 flex gap-3">
+                <button type="button" onclick="document.getElementById('modalEditItem').classList.add('hidden')" class="flex-1 py-4 bg-gray-100 rounded-xl font-black uppercase text-xs">Batal</button>
+                <button type="submit" class="flex-1 py-4 bg-amber-500 text-white rounded-xl font-black uppercase text-xs">Update</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function openEditRule(id, name, op, val, mod) {
+        document.getElementById('formEditRule').action = `/admin/integrity/rule/${id}`;
+        document.getElementById('edit_rule_name').value = name;
+        document.getElementById('edit_rule_operator').value = op;
+        document.getElementById('edit_rule_value').value = val;
+        document.getElementById('edit_rule_modifier').value = mod;
+        document.getElementById('modalEditRule').classList.remove('hidden');
+    }
+
+    function openEditItem(id, name, cost) {
+        document.getElementById('formEditItem').action = `/admin/integrity/item/${id}`;
+        document.getElementById('edit_item_name').value = name;
+        document.getElementById('edit_item_cost').value = cost;
+        document.getElementById('modalEditItem').classList.remove('hidden');
+    }
+</script>
 @endsection

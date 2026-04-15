@@ -66,8 +66,12 @@ Route::middleware('auth')->group(function () {
         Route::get('/lokasi-kantor', [LokasiKantorController::class, 'index'])->name('lokasi.index');
         Route::post('/lokasi-kantor', [LokasiKantorController::class, 'update'])->name('lokasi.update');
 
-        Route::get('/monitor-qr', function () { return view('admin.monitor_qr'); })->name('monitor.index');
-        Route::get('/qr-scanner', function () { return view('admin.qr_generator'); })->name('qr.view');
+        Route::get('/monitor-qr', function () {
+            return view('admin.monitor_qr');
+        })->name('monitor.index');
+        Route::get('/qr-scanner', function () {
+            return view('admin.qr_generator');
+        })->name('qr.view');
         Route::get('/generate-new-token', [QrController::class, 'generate'])->name('qr.generate');
 
         Route::get('/pengajuan', [PengajuanController::class, 'index'])->name('pengajuan.index');
@@ -108,6 +112,8 @@ Route::middleware('auth')->group(function () {
         Route::delete('/integrity/rule/{id}', [PointRuleController::class, 'destroyRule'])->name('integrity.rule.destroy');
         Route::post('/integrity/item', [PointRuleController::class, 'storeItem'])->name('integrity.item.store');
         Route::delete('/integrity/item/{id}', [PointRuleController::class, 'destroyItem'])->name('integrity.item.destroy');
+        Route::put('/integrity/rule/{id}', [PointRuleController::class, 'updateRule'])->name('integrity.rule.update');
+        Route::put('/integrity/item/{id}', [PointRuleController::class, 'updateItem'])->name('integrity.item.update');
     });
 
     // KHUSUS ROLE KARYAWAN

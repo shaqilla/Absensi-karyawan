@@ -74,8 +74,9 @@ class User extends Authenticatable
 
     public function currentPoints()
     {
-        $lastLedger = $this->hasMany(PointLedger::class)->latest()->first();
-        return $lastLedger ? $lastLedger->current_balance : 0;
+        // Ambil baris terakhir dari mutasi poin
+        $lastLedger = $this->hasMany(PointLedger::class)->orderBy('id', 'desc')->first();
+        return $lastLedger ? (int)$lastLedger->current_balance : 0;
     }
 
     public function tokens()

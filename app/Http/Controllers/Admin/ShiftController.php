@@ -45,6 +45,28 @@ class ShiftController extends Controller
         return redirect()->route('admin.shift.index')->with('success', 'Shift baru berhasil disimpan!');
     }
 
+    // EDIT SHIFT YANG SUDAH ADA
+    public function edit($id)
+    {
+        $shift = \App\Models\Shift::findOrFail($id);
+        return view('admin.shift.edit', compact('shift'));
+    }
+
+    public function update(Request $request, $id)
+    {
+        $request->validate([
+            'nama_shift' => 'required',
+            'jam_masuk' => 'required',
+            'jam_keluar' => 'required',
+            'toleransi_telat' => 'required|numeric',
+        ]);
+
+        $shift = \App\Models\Shift::findOrFail($id);
+        $shift->update($request->all());
+
+        return redirect()->route('admin.shift.index')->with('success', 'Shift berhasil diperbarui! Sekarang kamu bisa testing poinnya.');
+    }
+
     // HAPUS SHIFT DARI DATABASE
     public function destroy($id)
     {

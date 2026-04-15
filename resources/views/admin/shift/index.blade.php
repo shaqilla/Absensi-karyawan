@@ -2,7 +2,7 @@
 
 @section('content')
 <div class="w-full pb-10">
-    <!-- HEADER: Di HP judul & tombol akan tumpuk rapi ke bawah -->
+    <!-- HEADER -->
     <div class="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
         <div class="text-center md:text-left">
             <h1 class="text-2xl md:text-3xl font-black text-gray-800 uppercase tracking-tighter">Daftar Shift Kerja</h1>
@@ -20,10 +20,8 @@
         </div>
     @endif
 
-    <!-- TABEL AREA: Menggunakan rounded yang besar agar mewah -->
+    <!-- TABEL AREA -->
     <div class="bg-white rounded-2xl md:rounded-[2rem] shadow-sm border border-gray-100 overflow-hidden">
-        
-        <!-- KUNCI RESPONSIF: div overflow-x-auto ini wajib ada -->
         <div class="overflow-x-auto w-full">
             <table class="w-full text-left border-collapse min-w-[700px]">
                 <thead>
@@ -57,7 +55,13 @@
                             {{ $s->toleransi_telat }} <span class="opacity-50 font-medium">Menit</span>
                         </td>
                         <td class="p-4 md:p-6 text-center">
-                            <div class="flex justify-center items-center">
+                            <div class="flex justify-center items-center gap-2">
+                                <!-- TOMBOL EDIT -->
+                                <a href="{{ route('admin.shift.edit', $s->id) }}" class="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 hover:bg-amber-600 hover:text-white transition-all flex items-center justify-center shadow-sm border border-amber-100">
+                                    <i class="fas fa-edit text-xs"></i>
+                                </a>
+
+                                <!-- TOMBOL HAPUS -->
                                 <form action="{{ route('admin.shift.destroy', $s->id) }}" method="POST" onsubmit="return confirm('Hapus shift ini?')">
                                     @csrf @method('DELETE')
                                     <button type="submit" class="w-10 h-10 rounded-xl bg-rose-50 text-rose-500 hover:bg-rose-600 hover:text-white transition-all flex items-center justify-center shadow-sm border border-rose-100">
@@ -72,6 +76,7 @@
             </table>
         </div>
     </div>
+</div>
 
     <!-- Responsif -->
     <div class="mt-4 md:hidden flex items-center justify-center bg-indigo-50 p-3 rounded-xl border border-indigo-100">
