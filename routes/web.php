@@ -104,6 +104,8 @@ Route::middleware('auth')->group(function () {
             Route::post('/store', [AssessmentController::class, 'store'])->name('store');
             Route::get('/report', [AssessmentController::class, 'report'])->name('report');
             Route::get('/detail/{id}', [AssessmentController::class, 'detail'])->name('detail');
+            Route::get('/edit/{id}', [AssessmentController::class, 'edit'])->name('edit');
+            Route::put('/update/{id}', [AssessmentController::class, 'update'])->name('update');
         });
 
         // MODUL POIN INTEGRITAS

@@ -2,9 +2,7 @@
 
 @section('content')
 <style>
-    /* =============================================
-       MODAL OVERLAY
-    ============================================= */
+    /* MODAL OVERLAY */
     #print-modal {
         display: none;
         position: fixed;
@@ -221,7 +219,7 @@
         -webkit-overflow-scrolling: touch;
     }
 
-    /* ===== STYLE DOKUMEN — fluid responsive via clamp & container query ===== */
+    /* STYLE DOKUMEN — fluid responsive via clamp & container query */
 
     /* Container query context — paper jadi container */
     #print-modal .paper,
@@ -356,23 +354,23 @@
     }
 
     .doc-table tbody td.c {
-        text-align: center;
-    }
+            text-align: center;
+        }
 
-    .doc-table tbody tr:last-child td {
-        border-bottom: 2px solid #000;
-    }
+        .doc-table tbody tr:last-child td {
+            border-bottom: 2px solid #000;
+        }
 
-    .doc-nama {
-        font-weight: bold;
-        text-transform: uppercase;
-        font-size: clamp(7pt, 1.9cqi, 9.5pt);
-    }
+        .doc-nama {
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: clamp(7pt, 1.9cqi, 9.5pt);
+        }
 
-    .doc-dept {
-        font-size: clamp(6pt, 1.5cqi, 7.5pt);
-        color: #777;
-        margin-top: 1px;
+        .doc-dept {
+            font-size: clamp(6pt, 1.5cqi, 7.5pt);
+            color: #777;
+            margin-top: 1px;
     }
 
     .doc-waktu {

@@ -1,13 +1,13 @@
 @extends('layouts.admin')
 
 @section('content')
-<div class="w-full pb-10">
+<div class="w-full pb-10 text-black">
 
     {{-- Header --}}
     <div class="flex justify-between items-center mb-8">
         <div>
             <h1 class="text-3xl font-black text-gray-800 uppercase tracking-tighter">Laporan Penilaian</h1>
-            <p class="text-gray-400 text-sm italic font-medium lowercase">Rekap & grafik perkembangan sikap karyawan</p>
+            <p class="text-gray-400 text-sm italic font-medium">Rekap & grafik perkembangan sikap karyawan</p>
         </div>
     </div>
 
@@ -53,7 +53,7 @@
     </div>
     @else
 
-    {{-- Baris Atas: Radar Chart + Rata-rata Per Kategori --}}
+    {{-- Baris Atas: Radar Chart + Lineart Chart --}}
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
 
         {{-- Radar Chart --}}
@@ -64,36 +64,18 @@
                 <span class="bg-indigo-50 text-indigo-600 text-[10px] font-black px-3 py-1 rounded-lg uppercase ml-3 border border-indigo-100">{{ request('period') }}</span>
                 @endif
             </h2>
-            <div style="height: 320px; width: 100%; position: relative;">
+            <div style="height: 350px; width: 100%; position: relative;">
                 <canvas id="radarChart"></canvas>
             </div>
         </div>
 
-        {{-- Rata-rata Per Kategori --}}
-        <div class="bg-white rounded-[2.5rem] shadow-sm border border-gray-100 p-8">
-            <h2 class="text-sm font-black text-gray-800 uppercase tracking-widest mb-8">
-                <i class="fas fa-chart-bar text-indigo-400 mr-3"></i> Rata-rata per Kategori
+        {{-- Lineart Chart (Pengganti Progress Bar) --}}
+        <div class="bg-white rounded-[2.5rem] shadow-sm border border-gray-100 p-8 flex flex-col items-center">
+            <h2 class="w-full text-sm font-black text-gray-800 uppercase tracking-widest mb-8 flex items-center">
+                <i class="fas fa-chart-line text-emerald-400 mr-3"></i> Analisis Lineart Kategori
             </h2>
-            <div class="space-y-6">
-                @foreach($avgPerCategory as $item)
-                <div>
-                    <div class="flex justify-between items-center mb-2">
-                        <span class="font-black text-[10px] text-gray-500 uppercase tracking-widest">{{ $item['category'] }}</span>
-                        <div class="text-right">
-                            <span class="font-black text-sm {{ $item['average'] >= 4 ? 'text-emerald-600' : ($item['average'] >= 3 ? 'text-amber-500' : 'text-rose-600') }}">
-                                {{ number_format($item['average'], 2) }} <span class="text-[10px] opacity-40">/ 5</span>
-                            </span>
-                        </div>
-                    </div>
-                    @php $width = ($item['average'] / 5) * 100; @endphp
-                    <div class="w-full bg-gray-50 rounded-full h-3 border border-gray-100 overflow-hidden shadow-inner">
-                        <div class="h-3 rounded-full transition-all duration-1000 ease-out
-                            {{ $item['average'] >= 4 ? 'bg-emerald-500' : ($item['average'] >= 3 ? 'bg-amber-500' : 'bg-rose-500') }}"
-                            style="width: {{ $width }}%">
-                        </div>
-                    </div>
-                </div>
-                @endforeach
+            <div style="height: 350px; width: 100%; position: relative;">
+                <canvas id="lineChart"></canvas>
             </div>
         </div>
     </div>
@@ -161,24 +143,27 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        const radarData = @json($avgPerCategory);
+        const reportData = @json($avgPerCategory);
 
-        if (radarData && radarData.length > 0) {
-            const ctx = document.getElementById('radarChart').getContext('2d');
-            new Chart(ctx, {
+        if (reportData && reportData.length > 0) {
+            const labels = reportData.map(item => item.category);
+            const dataValues = reportData.map(item => item.average);
+
+            // 1. RADAR CHART
+            const ctxRadar = document.getElementById('radarChart').getContext('2d');
+            new Chart(ctxRadar, {
                 type: 'radar',
                 data: {
-                    labels: radarData.map(item => item.category),
+                    labels: labels,
                     datasets: [{
                         label: 'Skor Rata-rata',
-                        data: radarData.map(item => item.average),
+                        data: dataValues,
                         backgroundColor: 'rgba(79, 70, 229, 0.1)',
                         borderColor: 'rgba(79, 70, 229, 1)',
                         borderWidth: 3,
                         pointBackgroundColor: 'rgba(79, 70, 229, 1)',
                         pointBorderColor: '#fff',
-                        pointRadius: 4,
-                        pointHoverRadius: 6
+                        pointRadius: 4
                     }]
                 },
                 options: {
@@ -186,31 +171,59 @@
                     maintainAspectRatio: false,
                     scales: {
                         r: {
+                            min: 0, max: 5,
+                            ticks: { stepSize: 1, display: false },
+                            pointLabels: { font: { size: 10, weight: 'bold' }, color: '#64748b' }
+                        }
+                    },
+                    plugins: { legend: { display: false } }
+                }
+            });
+
+            // 2. LINE CHART (LINEART)
+            const ctxLine = document.getElementById('lineChart').getContext('2d');
+            new Chart(ctxLine, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Nilai Kategori',
+                        data: dataValues,
+                        fill: true,
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)', // Emerald/Green theme
+                        borderColor: 'rgba(16, 185, 129, 1)',
+                        borderWidth: 4,
+                        tension: 0.4, // Membuat garis menjadi melengkung (smooth)
+                        pointBackgroundColor: '#fff',
+                        pointBorderColor: 'rgba(16, 185, 129, 1)',
+                        pointBorderWidth: 3,
+                        pointRadius: 6,
+                        pointHoverRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
                             min: 0,
                             max: 5,
-                            ticks: {
-                                stepSize: 1,
-                                display: false
-                            },
-                            pointLabels: {
-                                font: {
-                                    size: 10,
-                                    weight: 'bold',
-                                    family: 'sans-serif'
-                                },
-                                color: '#64748b'
-                            },
-                            grid: {
-                                color: 'rgba(0,0,0,0.05)'
-                            },
-                            angleLines: {
-                                color: 'rgba(0,0,0,0.05)'
-                            }
+                            ticks: { font: { weight: 'bold' }, color: '#94a3b8' },
+                            grid: { display: true, color: 'rgba(0,0,0,0.03)' }
+                        },
+                        x: {
+                            ticks: { font: { size: 10, weight: 'bold' }, color: '#64748b' },
+                            grid: { display: false }
                         }
                     },
                     plugins: {
-                        legend: {
-                            display: false
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: '#1e293b',
+                            titleFont: { size: 13 },
+                            bodyFont: { size: 13 },
+                            padding: 12,
+                            displayColors: false
                         }
                     }
                 }
@@ -218,4 +231,4 @@
         }
     });
 </script>
-@endsection 
+@endsection

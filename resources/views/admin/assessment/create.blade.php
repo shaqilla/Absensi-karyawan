@@ -1,7 +1,7 @@
 @extends('layouts.admin')
 
 @section('content')
-    <div class="w-full pb-10">
+    <div class="w-full pb-10 text-black">
         {{-- Header --}}
         <div class="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 gap-4">
             <div>
@@ -40,12 +40,19 @@
                                 {{ $target->karyawan->jabatan ?? 'Position not set' }}</p>
                         </div>
                     </div>
-                    <!-- Decorative Icon -->
                     <i class="fas fa-certificate absolute -right-4 -bottom-4 text-9xl opacity-10"></i>
                 </div>
 
                 <form action="{{ route('admin.assessment.store') }}" method="POST" class="p-6 md:p-12" id="assessmentForm">
                     @csrf
+
+                    {{-- FIX: HITUNG TOTAL PERTANYAAN DI SINI --}}
+                    @php
+                        $totalQuestions = $categories->sum(function($cat) {
+                            return $cat->questions->count();
+                        });
+                    @endphp
+
                     <input type="hidden" name="evaluatee_id" value="{{ $target->id }}">
 
                     @if ($categories->isEmpty())
@@ -83,7 +90,6 @@
 
                                     <div class="p-8 space-y-8">
                                         @forelse($category->questions as $question)
-                                            {{-- Sesuaikan dengan relasi di model --}}
                                             <div class="question-row group transition-all"
                                                 data-question="{{ $question->id }}">
                                                 <div
@@ -98,11 +104,6 @@
                                                                 <p
                                                                     class="font-bold text-slate-700 text-sm md:text-base leading-tight">
                                                                     {{ $question->question }}</p>
-                                                                @if ($question->description)
-                                                                    <p
-                                                                        class="text-[10px] text-slate-400 font-medium italic">
-                                                                        {{ $question->description }}</p>
-                                                                @endif
                                                             </div>
                                                         </div>
                                                     </div>
@@ -144,7 +145,7 @@
                     @endif
 
                     <!-- FEEDBACK AREA -->
-                    <div class="mt-12 bg-slate-50 p-8 rounded-[2rem] border border-slate-100">
+                    <div class="mt-12 bg-slate-50 p-8 rounded-[2rem] border border-slate-100 text-black">
                         <label class="block text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em] mb-4">
                             <i class="fas fa-comment-alt mr-2"></i>Catatan Feedback untuk
                             {{ explode(' ', $target->nama)[0] }}
@@ -171,66 +172,23 @@
     </div>
 
     <style>
-        .star-btn {
-            color: #e2e8f0;
-            background: none;
-            border: none;
-            cursor: pointer;
-        }
-
-        .star-btn.active {
-            color: #fbbf24;
-            text-shadow: 0 0 15px rgba(251, 191, 36, 0.4);
-        }
-
-        .star-btn.hover {
-            color: #f59e0b;
-            transform: scale(1.2);
-        }
-
-        .question-row.incomplete {
-            border-left: 4px solid #f87171;
-            background-color: #fff1f2;
-            padding-left: 15px;
-        }
-
-        .rating-label.active .rating-text {
-            display: none;
-        }
-
-        .rating-label.active .rating-value-text {
-            display: inline;
-        }
-
-        .no-scrollbar::-webkit-scrollbar {
-            display: none;
-        }
+        .star-btn { color: #e2e8f0; background: none; border: none; cursor: pointer; }
+        .star-btn.active { color: #fbbf24; text-shadow: 0 0 15px rgba(251, 191, 36, 0.4); }
+        .star-btn.hover { color: #f59e0b; transform: scale(1.2); }
+        .question-row.incomplete { border-left: 4px solid #f87171; background-color: #fff1f2; padding-left: 15px; }
+        .rating-label.active .rating-text { display: none; }
+        .rating-label.active .rating-value-text { display: inline; }
     </style>
 
     <script>
         const ratings = {};
-        const totalQuestions = {{ $totalQuestions ?? 0 }};
+        const totalQuestions = {{ $totalQuestions }};
         const ratingLabels = {
-            1: {
-                text: 'Sangat Kurang',
-                class: 'text-rose-600'
-            },
-            2: {
-                text: 'Kurang',
-                class: 'text-orange-500'
-            },
-            3: {
-                text: 'Cukup',
-                class: 'text-amber-500'
-            },
-            4: {
-                text: 'Baik',
-                class: 'text-emerald-500'
-            },
-            5: {
-                text: 'Sangat Baik',
-                class: 'text-green-600'
-            }
+            1: { text: 'Sangat Kurang', class: 'text-rose-600' },
+            2: { text: 'Kurang', class: 'text-orange-500' },
+            3: { text: 'Cukup', class: 'text-amber-500' },
+            4: { text: 'Baik', class: 'text-emerald-500' },
+            5: { text: 'Sangat Baik', class: 'text-green-600' }
         };
 
         function setRating(questionId, rating) {
@@ -267,12 +225,10 @@
         function resetRating(qId) {
             document.querySelectorAll(`.star-btn[data-question="${qId}"]`).forEach(star => star.classList.remove('hover'));
             if (ratings[qId]) updateStars(qId, ratings[qId]);
-            else document.querySelectorAll(`.star-btn[data-question="${qId}"]`).forEach(star => star.classList.remove(
-                'active'));
+            else document.querySelectorAll(`.star-btn[data-question="${qId}"]`).forEach(star => star.classList.remove('active'));
         }
 
         function updateProgress() {
-            if (totalQuestions === 0) return;
             const answered = Object.keys(ratings).length;
             const percent = (answered / totalQuestions) * 100;
             document.getElementById('progressBar').style.width = percent + '%';

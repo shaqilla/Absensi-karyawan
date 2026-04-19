@@ -15,7 +15,6 @@ use Illuminate\Support\Facades\Auth;
 
 class AssessmentController extends Controller
 {
-    // Menampilkan daftar karyawan yang bisa dinilai
     public function employees()
     {
         $employees = Karyawan::with(['user', 'departemen'])
@@ -44,12 +43,10 @@ class AssessmentController extends Controller
         return view('admin.assessment.employees', compact('employees'));
     }
 
-    // Menampilkan form penilaian
     public function create($evaluatee_id)
     {
         $target = User::with('karyawan')->where('role', 'karyawan')->findOrFail($evaluatee_id);
 
-        // Ambil kategori beserta pertanyaannya
         $categories = AssessmentCategory::with(['questions' => function ($q) {
             $q->where('is_active', true);
         }])
@@ -64,7 +61,6 @@ class AssessmentController extends Controller
         return view('admin.assessment.create', compact('target', 'categories'));
     }
 
-    // Menyimpan penilaian baru
     public function store(Request $request)
     {
         $request->validate([
@@ -77,7 +73,6 @@ class AssessmentController extends Controller
         try {
             DB::beginTransaction();
 
-            // Cek duplikasi di bulan yang sama
             $existing = Assessment::where('evaluatee_id', $request->evaluatee_id)
                 ->whereMonth('assessment_date', now()->month)
                 ->whereYear('assessment_date', now()->year)
@@ -111,23 +106,72 @@ class AssessmentController extends Controller
         }
     }
 
-    // Laporan Global untuk Admin
+    // --- FITUR EDIT (BARU) ---
+    public function edit($id)
+    {
+        // Ambil data penilaian beserta detail skornya
+        $assessment = Assessment::with(['evaluatee', 'details'])->findOrFail($id);
+
+        // Ambil kategori dan pertanyaan yang aktif
+        $categories = AssessmentCategory::with(['questions' => function ($q) {
+            $q->where('is_active', true);
+        }])->where('is_active', true)->get();
+
+        // Mapping skor lama biar muncul di form edit
+        $oldScores = $assessment->details->pluck('score', 'question_id')->toArray();
+
+        return view('admin.assessment.edit', compact('assessment', 'categories', 'oldScores'));
+    }
+
+    // --- FITUR UPDATE (BARU) ---
+    public function update(Request $request, $id)
+    {
+        $request->validate([
+            'scores'   => 'required|array',
+            'scores.*' => 'required|integer|min:1|max:5',
+            'notes'    => 'nullable|string',
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            $assessment = Assessment::findOrFail($id);
+
+            // Update catatan umum
+            $assessment->update([
+                'general_notes' => $request->notes,
+            ]);
+
+            // Hapus detail lama, ganti yang baru biar gak ribet logikanya
+            AssessmentDetail::where('assessment_id', $id)->delete();
+
+            foreach ($request->scores as $question_id => $score) {
+                AssessmentDetail::create([
+                    'assessment_id' => $assessment->id,
+                    'question_id'   => $question_id,
+                    'score'         => $score,
+                ]);
+            }
+
+            DB::commit();
+            return redirect()->route('admin.assessment.report')->with('success', 'Penilaian berhasil diperbarui!');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()->back()->with('error', 'Gagal update: ' . $e->getMessage());
+        }
+    }
+
     public function report(Request $request)
     {
         $currentUser = Auth::user();
 
-        // FIX: Inisialisasi variabel $query agar tidak error
         $query = Assessment::with([
             'evaluator.karyawan',
             'evaluatee.karyawan',
             'details.question.category',
         ]);
 
-        // FILTER ROLE
-        if ($currentUser->role == 'admin') {
-            // Lihat semua
-        } else {
-            // Selain admin hanya lihat yang dia nilai (Atasan)
+        if ($currentUser->role != 'admin') {
             $query->where('evaluator_id', $currentUser->id);
         }
 
@@ -138,7 +182,6 @@ class AssessmentController extends Controller
         $assessments = $query->orderBy('assessment_date', 'desc')->get();
         $periods = Assessment::distinct()->pluck('period');
 
-        // Hitung Rata-rata per Kategori untuk Radar Chart
         $categoryTotals = [];
         foreach ($assessments as $assessment) {
             foreach ($assessment->details as $detail) {
@@ -164,7 +207,6 @@ class AssessmentController extends Controller
         return view('admin.assessment.report', compact('assessments', 'avgPerCategory', 'periods'));
     }
 
-    // Rapor Saya (Khusus Karyawan)
     public function myReport(Request $request)
     {
         $userId = Auth::id();
@@ -179,7 +221,6 @@ class AssessmentController extends Controller
         $assessments = $query->orderBy('assessment_date', 'desc')->get();
         $periods = Assessment::where('evaluatee_id', $userId)->distinct()->pluck('period');
 
-        // Data Radar Chart Pribadi
         $categoryScores = [];
         foreach ($assessments as $a) {
             foreach ($a->details as $d) {
@@ -206,35 +247,30 @@ class AssessmentController extends Controller
     {
         $assessment = Assessment::with(['evaluator', 'evaluatee', 'details.question.category'])->findOrFail($id);
 
-        // Jika dipanggil lewat JavaScript (untuk Modal)
         if (request()->ajax()) {
             return response()->json($assessment);
         }
 
-        // Jika dipanggil biasa (opsional)
         return view('admin.assessment.detail', compact('assessment'));
     }
 
     public function destroy($id)
     {
         $assessment = Assessment::findOrFail($id);
-        $assessment->delete(); // Detail akan terhapus otomatis karena cascade di migration
+        $assessment->delete();
         return back()->with('success', 'Data penilaian berhasil dihapus!');
     }
 
-    // Menampilkan riwayat penilaian secara lengkap
     public function history(Request $request)
     {
         $query = Assessment::with(['evaluator.karyawan', 'evaluatee.karyawan', 'details.question.category']);
 
-        // Fitur Cari Nama
         if ($request->filled('search')) {
             $query->whereHas('evaluatee', function ($q) use ($request) {
                 $q->where('nama', 'LIKE', "%{$request->search}%");
             });
         }
 
-        // Fitur Filter Periode
         if ($request->filled('period')) {
             $query->where('period', $request->period);
         }

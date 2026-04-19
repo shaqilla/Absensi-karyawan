@@ -55,8 +55,8 @@
             </div>
         </div>
 
-        <!-- Tidak Hadir -->
-        <div class="bg-white p-6 rounded-[2rem] shadow-sm border-b-4 border-rose-500">
+        <!-- Tidak Hadir (Alpha) -->
+        <div class="bg-white p-6 rounded-[2rem] shadow-sm border-b-4 border-rose-500 transition-all hover:shadow-md">
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-[10px] text-gray-400 font-black uppercase tracking-widest mb-1">Tidak Hadir</p>
@@ -70,29 +70,30 @@
     </div>
 
     <!-- TABEL PRESENSI TERBARU -->
-    <div class="bg-white rounded-[2rem] shadow-sm border border-gray-100 overflow-hidden">
+    <div class="bg-white rounded-[2rem] shadow-sm border border-gray-100 overflow-hidden text-black">
         <div class="p-6 md:p-8 border-b border-gray-50 flex justify-between items-center bg-gray-50/30">
             <div class="flex items-center">
                 <div class="w-2 h-6 bg-indigo-600 rounded-full mr-3"></div>
-                <h2 class="font-black text-gray-800 text-sm md:text-base uppercase tracking-widest">Aktivitas Presensi Terbaru</h2>
+                <h2 class="font-black text-gray-800 text-sm md:text-base uppercase tracking-widest">Aktivitas Presensi Hari Ini</h2>
             </div>
             <i class="fas fa-history text-gray-300 hidden sm:block"></i>
         </div>
 
         <div class="overflow-x-auto w-full">
-            <table class="w-full text-left border-collapse min-w-[700px]">
+            <table class="w-full text-left border-collapse min-w-[800px]">
                 <thead>
                     <tr class="text-gray-400 text-[10px] font-black uppercase tracking-widest border-b border-gray-50">
                         <th class="p-6">Pegawai</th>
                         <th class="p-6 text-center">Waktu Scan</th>
-                        <th class="p-6 text-center">Shift (History)</th>
+                        <th class="p-6 text-center">Shift</th>
                         <th class="p-6 text-center">Status</th>
+                        <th class="p-6 text-center">Poin Total</th> {{-- KOLOM BARU --}}
                         <th class="p-6">Unit Kerja</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-50">
                     @forelse($presensiTerbaru as $p)
-                    <tr class="hover:bg-gray-50/50 transition duration-200">
+                    <tr class="hover:bg-gray-50/50 transition duration-200 {{ $p->status == 'alpha' ? 'bg-rose-50/30' : '' }}">
                         <td class="p-6">
                             <div class="flex items-center">
                                 <div class="w-9 h-9 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center font-black text-xs mr-3 border border-indigo-200 shadow-sm uppercase">
@@ -104,23 +105,46 @@
                                 </div>
                             </div>
                         </td>
-                        <td class="p-6 text-center font-mono font-black text-gray-500 text-xs">
-                            <span class="bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200">
-                                {{ date('H:i', strtotime($p->jam_masuk)) }} <span class="font-medium opacity-50">WIB</span>
-                            </span>
+
+                        {{-- FIX: JIKA ALPHA, JAM JADI --:-- --}}
+                        <td class="p-6 text-center font-mono font-black text-xs">
+                            @if($p->status == 'alpha')
+                                <span class="text-gray-300">--:--</span>
+                            @else
+                                <span class="bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200 text-gray-500">
+                                    {{ $p->jam_masuk ? date('H:i', strtotime($p->jam_masuk)) : '--:--' }} <span class="font-medium opacity-50">WIB</span>
+                                </span>
+                            @endif
                         </td>
-                        <!-- KOLOM SHIFT (SNAPSHOT) -->
+
                         <td class="p-6 text-center">
                             <span class="text-[10px] font-black text-indigo-500 bg-indigo-50 px-2 py-1 rounded-md uppercase border border-indigo-100">
                                 {{ $p->shift->nama_shift ?? 'Umum' }}
                             </span>
                         </td>
+
                         <td class="p-6 text-center">
-                            <span class="px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border
-                                {{ $p->status == 'hadir' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-amber-50 text-amber-600 border-amber-100' }}">
+                            @php
+                                $statusClasses = [
+                                    'hadir' => 'bg-emerald-50 text-emerald-600 border-emerald-100',
+                                    'telat' => 'bg-amber-50 text-amber-600 border-amber-100',
+                                    'alpha' => 'bg-rose-100 text-rose-600 border-rose-200'
+                                ];
+                                $class = $statusClasses[$p->status] ?? 'bg-gray-50 text-gray-400 border-gray-100';
+                            @endphp
+                            <span class="px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border {{ $class }}">
                                 {{ $p->status }}
                             </span>
                         </td>
+
+                        {{-- KOLOM POIN TOTAL KARYAWAN --}}
+                        <td class="p-6 text-center">
+                            <div class="flex flex-col items-center">
+                                <span class="text-xs font-black text-indigo-600">{{ number_format($p->user->currentPoints(), 0, ',', '.') }}</span>
+                                <span class="text-[8px] font-bold text-gray-400 uppercase tracking-tighter">Points</span>
+                            </div>
+                        </td>
+
                         <td class="p-6">
                             <span class="text-[10px] font-bold text-slate-500 uppercase tracking-tight">
                                 {{ $p->user->karyawan->departemen->nama_departemen ?? 'General' }}
@@ -129,7 +153,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="5" class="p-20 text-center">
+                        <td colspan="6" class="p-20 text-center">
                             <div class="flex flex-col items-center">
                                 <i class="fas fa-inbox text-gray-100 text-7xl mb-4"></i>
                                 <p class="text-gray-400 font-black uppercase tracking-widest text-[10px]">Belum ada aktivitas hari ini</p>
