@@ -165,23 +165,27 @@ class AssessmentController extends Controller
     {
         $currentUser = Auth::user();
 
+        // 1. Ambil data penilaian dengan relasi
         $query = Assessment::with([
             'evaluator.karyawan',
             'evaluatee.karyawan',
             'details.question.category',
         ]);
 
+        // Filter: Kalau bukan admin, cuma bisa lihat yang dia nilai
         if ($currentUser->role != 'admin') {
             $query->where('evaluator_id', $currentUser->id);
         }
 
+        // Filter Periode (Jika ada)
         if ($request->filled('period')) {
             $query->where('period', $request->period);
         }
 
-        $assessments = $query->orderBy('assessment_date', 'desc')->get();
-        $periods = Assessment::distinct()->pluck('period');
+        $assessments = $query->orderBy('assessment_date', 'asc')->get(); // Diurutkan ASC untuk tren grafik
+        $periods = Assessment::distinct()->orderBy('assessment_date', 'desc')->pluck('period');
 
+        // 2. HITUNG RATA-RATA PER KATEGORI (Untuk Radar Chart & Lineart Kategori)
         $categoryTotals = [];
         foreach ($assessments as $assessment) {
             foreach ($assessment->details as $detail) {
@@ -204,27 +208,57 @@ class AssessmentController extends Controller
             ];
         }
 
-        return view('admin.assessment.report', compact('assessments', 'avgPerCategory', 'periods'));
+        // 3. HITUNG TREN NILAI PER PERIODE (Untuk Grafik Lineart Tren)
+        $trendData = [];
+        $periodGroups = $assessments->groupBy('period');
+        foreach ($periodGroups as $period => $group) {
+            $totalScore = 0;
+            $totalDetails = 0;
+            foreach ($group as $asmt) {
+                foreach ($asmt->details as $det) {
+                    $totalScore += $det->score;
+                    $totalDetails++;
+                }
+            }
+            $trendData[] = [
+                'period' => $period,
+                'average' => $totalDetails > 0 ? round($totalScore / $totalDetails, 2) : 0
+            ];
+        }
+
+        // Urutkan kembali assessments ke DESC untuk tampilan tabel riwayat di bawah
+        $assessments = $assessments->sortByDesc('assessment_date');
+
+        return view('admin.assessment.report', compact('assessments', 'avgPerCategory', 'periods', 'trendData'));
     }
 
     public function myReport(Request $request)
     {
         $userId = Auth::id();
 
+        // 1. Ambil Penilaian milik user ini
         $query = Assessment::with(['evaluator', 'details.question.category'])
             ->where('evaluatee_id', $userId);
 
+        // Filter Periode kalau ada
         if ($request->filled('period')) {
             $query->where('period', $request->period);
         }
 
         $assessments = $query->orderBy('assessment_date', 'desc')->get();
-        $periods = Assessment::where('evaluatee_id', $userId)->distinct()->pluck('period');
 
+        // 2. FIX ERROR SQL: Pake groupBy buat ambil periode unik dan diurutin berdasarkan tanggal terbaru
+        $periods = Assessment::where('evaluatee_id', $userId)
+            ->select('period')
+            ->groupBy('period')
+            ->orderByRaw('MAX(assessment_date) DESC')
+            ->pluck('period');
+
+        // 3. HITUNG RATA-RATA PER KATEGORI (Buat Radar Chart & Progress Bar)
         $categoryScores = [];
         foreach ($assessments as $a) {
             foreach ($a->details as $d) {
-                $catName = $d->question->category->name;
+                $catName = $d->question->category->name ?? 'Lainnya';
                 if (!isset($categoryScores[$catName])) {
                     $categoryScores[$catName] = ['sum' => 0, 'count' => 0];
                 }
@@ -233,14 +267,37 @@ class AssessmentController extends Controller
             }
         }
 
-        $radarLabels = [];
-        $radarData = [];
+        $avgPerCategory = [];
         foreach ($categoryScores as $name => $val) {
-            $radarLabels[] = $name;
-            $radarData[] = round($val['sum'] / $val['count'], 2);
+            $avgPerCategory[] = [
+                'category' => $name,
+                'average'  => round($val['sum'] / $val['count'], 2)
+            ];
         }
 
-        return view('karyawan.rapor', compact('assessments', 'periods', 'radarLabels', 'radarData'));
+        // 4. HITUNG DATA BULANAN (Buat Line Chart Perkembangan Nilai)
+        $monthlyData = [];
+        $sortedForChart = $assessments->sortBy('assessment_date');
+        foreach ($sortedForChart as $a) {
+            $monthlyData[$a->period] = round($a->details->avg('score'), 2);
+        }
+
+        // 5. HITUNG STATS (Buat Info Card)
+        $latestAssessment = $assessments->first();
+        $stats = [
+            'total_assessments' => $assessments->count(),
+            'average_all'       => $assessments->isNotEmpty() ? round($assessments->flatMap->details->avg('score'), 1) : 0,
+            'latest_score'      => $latestAssessment ? round($latestAssessment->details->avg('score'), 1) : 0
+        ];
+
+        // 6. Kirim SEMUA variabel ke Blade
+        return view('karyawan.rapor', compact(
+            'assessments',
+            'periods',
+            'avgPerCategory',
+            'monthlyData',
+            'stats'
+        ));
     }
 
     public function detail($id)

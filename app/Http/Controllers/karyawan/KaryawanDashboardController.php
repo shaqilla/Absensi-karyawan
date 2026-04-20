@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Karyawan;
 
 use App\Http\Controllers\Controller;
 use App\Models\{Presensi, JadwalKerja, User, PointRule, PointLedger, Pengajuan};
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\{Auth, DB, Log};
 use Carbon\Carbon;
 
@@ -125,6 +126,45 @@ class KaryawanDashboardController extends Controller
     {
         $jadwals = JadwalKerja::with('shift')->where('user_id', Auth::id())->get();
         return view('karyawan.jadwal', compact('jadwals'));
+    }
+
+    // --- FUNGSI LAPORAN (UNTUK FIX ERROR METHOD & UNDEFINED VARIABLE) ---
+    public function laporan(Request $request)
+    {
+        $userId = Auth::id();
+
+        // 1. Ambil filter bulan dan tahun, default ke hari ini
+        $bulan = $request->get('bulan', date('m'));
+        $tahun = $request->get('tahun', date('Y'));
+
+        // 2. Ambil data presensi (absen) karyawan di bulan tersebut
+        $laporans = Presensi::where('user_id', $userId)
+            ->whereMonth('tanggal', $bulan)
+            ->whereYear('tanggal', $tahun)
+            ->orderBy('tanggal', 'desc')
+            ->get();
+
+        // 3. HITUNG STATISTIK (Ini yang bikin error tadi)
+        // Kita hitung dari data yang sudah ditarik di atas
+        $stats = [
+            'hadir' => $laporans->where('status', 'hadir')->count(),
+            'telat' => $laporans->where('status', 'telat')->count(),
+            'alpha' => $laporans->where('status', 'alpha')->count(),
+            // Untuk izin & sakit, kita ambil dari tabel Pengajuan yang sudah disetujui
+            'izin'  => Pengajuan::where('user_id', $userId)
+                ->where('jenis_pengajuan', 'izin')
+                ->where('status', 'disetujui')
+                ->whereMonth('tanggal_mulai', $bulan)
+                ->count(),
+            'sakit' => Pengajuan::where('user_id', $userId)
+                ->where('jenis_pengajuan', 'sakit')
+                ->where('status', 'disetujui')
+                ->whereMonth('tanggal_mulai', $bulan)
+                ->count(),
+        ];
+
+        // 4. Kirim variabel yang dibutuhkan Blade (laporans, stats, bulan, tahun)
+        return view('karyawan.laporan', compact('laporans', 'stats', 'bulan', 'tahun'));
     }
 
     public function profil()

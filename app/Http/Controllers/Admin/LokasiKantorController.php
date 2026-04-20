@@ -21,7 +21,6 @@ class LokasiKantorController extends Controller
 
 
     // UPDATE DATA LOKASI KANTOR
-
     public function update(Request $request)
     {
         // Validasi semua input wajib diisi
