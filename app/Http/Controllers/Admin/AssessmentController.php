@@ -183,7 +183,11 @@ class AssessmentController extends Controller
         }
 
         $assessments = $query->orderBy('assessment_date', 'asc')->get(); // Diurutkan ASC untuk tren grafik
-        $periods = Assessment::distinct()->orderBy('assessment_date', 'desc')->pluck('period');
+        // GANTI baris yang bikin error itu jadi ini:
+        $periods = Assessment::select('period')
+            ->groupBy('period')
+            ->orderByRaw('MAX(assessment_date) DESC')
+            ->pluck('period');
 
         // 2. HITUNG RATA-RATA PER KATEGORI (Untuk Radar Chart & Lineart Kategori)
         $categoryTotals = [];
@@ -248,8 +252,7 @@ class AssessmentController extends Controller
         $assessments = $query->orderBy('assessment_date', 'desc')->get();
 
         // 2. FIX ERROR SQL: Pake groupBy buat ambil periode unik dan diurutin berdasarkan tanggal terbaru
-        $periods = Assessment::where('evaluatee_id', $userId)
-            ->select('period')
+        $periods = Assessment::select('period')
             ->groupBy('period')
             ->orderByRaw('MAX(assessment_date) DESC')
             ->pluck('period');
@@ -333,7 +336,11 @@ class AssessmentController extends Controller
         }
 
         $assessments = $query->orderBy('assessment_date', 'desc')->paginate(10);
-        $periods = Assessment::distinct()->pluck('period');
+        // GANTI baris yang bikin error itu jadi ini:
+        $periods = Assessment::select('period')
+            ->groupBy('period')
+            ->orderByRaw('MAX(assessment_date) DESC')
+            ->pluck('period');
 
         return view('admin.assessment.history', compact('assessments', 'periods'));
     }
