@@ -40,9 +40,10 @@
 
                     <div>
                         <label class="block text-[9px] md:text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Role Akses</label>
-                        <select name="role" class="w-full border-gray-200 rounded-xl p-3 md:p-4 focus:ring-2 focus:ring-indigo-500 border outline-none font-bold text-gray-700 text-sm" required>
-                            <option value="karyawan" {{ old('role', $karyawan->user->role) == 'karyawan' ? 'selected' : '' }}>Karyawan (Absensi)</option>
-                            <option value="admin" {{ old('role', $karyawan->user->role) == 'admin' ? 'selected' : '' }}>Admin (Full Akses)</option>
+                        <select name="role" class="w-full border-gray-200 rounded-xl p-3 md:p-4 focus:ring-2 focus:ring-indigo-500 border outline-none font-bold text-gray-700 text-sm bg-gray-50" required>
+                            <option value="karyawan" {{ old('role') == 'karyawan' ? 'selected' : '' }}>Karyawan </option>
+                            <option value="pimpinan" {{ old('role') == 'pimpinan' ? 'selected' : '' }}>Pimpinan </option>
+                            <option value="admin" {{ old('role') == 'admin' ? 'selected' : '' }}>Admin </option>
                         </select>
                     </div>
 

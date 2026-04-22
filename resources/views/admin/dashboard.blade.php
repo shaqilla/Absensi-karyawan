@@ -6,7 +6,7 @@
         <div class="text-center md:text-left">
             <h1 class="text-2xl md:text-3xl font-black text-gray-800 uppercase tracking-tighter">Ringkasan Hari Ini</h1>
             <p class="text-gray-500 text-xs md:text-sm italic font-medium">Monitoring kehadiran karyawan.</p>
-        </div>
+        </div> 
         <div class="flex justify-center">
             <span class="bg-indigo-50 text-indigo-600 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border border-indigo-100 shadow-sm">
                 {{ now()->isoFormat('dddd, D MMMM YYYY') }}

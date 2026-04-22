@@ -75,10 +75,18 @@
                                 </div>
                                 <div>
                                     <p class="font-black text-gray-800 uppercase text-xs md:text-sm tracking-tight">{{ $k->user->nama }}</p>
+
                                     @if($k->user->role == 'admin')
-                                    <span class="text-[8px] md:text-[9px] bg-rose-100 text-rose-600 px-2 py-0.5 rounded font-black uppercase">Admin</span>
+                                        {{-- Warna Merah buat Admin --}}
+                                        <span class="text-[8px] md:text-[9px] bg-rose-100 text-rose-600 px-2 py-0.5 rounded font-black uppercase">Admin</span>
+
+                                    @elseif($k->user->role == 'pimpinan')
+                                        {{-- Warna Ungu/Indigo buat Pimpinan (BIAR KELIHATAN BEDA!) --}}
+                                        <span class="text-[8px] md:text-[9px] bg-indigo-100 text-indigo-600 px-2 py-0.5 rounded font-black uppercase">Pimpinan</span>
+
                                     @else
-                                    <span class="text-[8px] md:text-[9px] bg-blue-100 text-blue-600 px-2 py-0.5 rounded font-black uppercase">Karyawan</span>
+                                        {{-- Warna Biru buat Karyawan biasa --}}
+                                        <span class="text-[8px] md:text-[9px] bg-blue-100 text-blue-600 px-2 py-0.5 rounded font-black uppercase">Karyawan</span>
                                     @endif
                                 </div>
                             </div>

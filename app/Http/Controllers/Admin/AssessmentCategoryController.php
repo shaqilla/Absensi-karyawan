@@ -16,6 +16,7 @@ class AssessmentCategoryController extends Controller
 
     public function store(Request $request)
     {
+        // dd($request->all());
         $request->validate([
             'name'        => 'required|string|max:100|unique:assessment_categories,name',
             'type'        => 'required|in:Employee,Student',
