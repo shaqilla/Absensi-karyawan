@@ -30,7 +30,6 @@ class User extends Authenticatable
         ];
     }
 
-    // --- RELASI NYA DI SINI ---
 
     /**
      * Menghubungkan User ke data detail Karyawan
@@ -82,5 +81,15 @@ class User extends Authenticatable
     public function tokens()
     {
         return $this->hasMany(UserToken::class);
+    }
+
+    public function reportedTickets()
+    {
+        return $this->hasMany(Ticket::class, 'reporter_id');
+    }
+
+    public function assignedTickets()
+    {
+        return $this->hasMany(Ticket::class, 'operator_id');
     }
 }

@@ -5,21 +5,39 @@ namespace App\Http\Middleware;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Illuminate\Support\Facades\Auth;
 
 class RoleMiddleware
 {
     /**
      * Handle an incoming request.
      *
-     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
+     * @param  \Illuminate\Http\Request  $request
+     * @param  \Closure  $next
+     * @param  string  ...$roles
+     * @return \Symfony\Component\HttpFoundation\Response
      */
-    public function handle(Request $request, Closure $next, ...$roles)
+    public function handle(Request $request, Closure $next, ...$roles): Response
     {
-        // Kalau gak login atau role-nya gak ada di daftar yang dibolehin, tendang!
-        if (!auth()->check() || !in_array(auth()->user()->role, $roles)) {
-            abort(403, 'eits, gabisa akses ini ya!');
+        // 1. Cek apakah user sudah login
+        if (!Auth::check()) {
+            return redirect()->route('login');
         }
 
-        return $next($request);
+        // 2. Ambil role user, pastikan tidak null, kecilkan semua huruf & hapus spasi
+        $userRole = strtolower(trim(Auth::user()->role ?? ''));
+
+        // 3. Bersihkan daftar role yang dikirim dari web.php
+        $allowedRoles = array_map(function ($role) {
+            return strtolower(trim($role));
+        }, $roles);
+
+        // 4. LOGIKA PENGECEKAN
+        if (in_array($userRole, $allowedRoles)) {
+            return $next($request);
+        }
+
+        // 5. TENDANG JIKA GAK PUNYA AKSES
+        abort(403, 'MAAF, ROLE ' . strtoupper($userRole) . ' TIDAK DIIZINKAN MENGAKSES HALAMAN INI.');
     }
 }

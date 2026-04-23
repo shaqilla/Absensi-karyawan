@@ -109,6 +109,19 @@
                     <i class="fas fa-wallet w-6 text-center text-emerald-400"></i>
                     <span class="ml-3 font-bold text-sm uppercase sidebar-text">Gamifikasi Point</span>
                 </a>
+
+                <p class="px-4 text-[10px] font-black text-indigo-400 uppercase tracking-widest mt-6 mb-2 sidebar-text">
+                    Bantuan</p>
+                <a href="{{ route('karyawan.tickets.create') }}"
+                    class="flex items-center p-3 rounded-xl transition {{ request()->routeIs('karyawan.tickets.create') ? 'bg-indigo-600 text-white shadow-lg' : 'text-indigo-200 hover:bg-indigo-900' }}">
+                    <i class="fas fa-ticket-alt w-6 text-center"></i>
+                    <span class="ml-3 font-bold text-sm sidebar-text uppercase">Lapor Kendala</span>
+                </a>
+                <a href="{{ route('karyawan.tickets.index') }}"
+                    class="flex items-center p-3 rounded-xl transition {{ request()->routeIs('karyawan.tickets.index') ? 'bg-indigo-600 text-white shadow-lg' : 'text-indigo-200 hover:bg-indigo-900' }}">
+                    <i class="fas fa-history w-6 text-center"></i>
+                    <span class="ml-3 font-bold text-sm sidebar-text uppercase">Status Aduan</span>
+                </a>
             </nav>
         </aside>
 

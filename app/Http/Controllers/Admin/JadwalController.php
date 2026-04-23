@@ -15,7 +15,7 @@ class JadwalController extends Controller
     {
         // Variabel adalah tempat menyimpan data di dalam program
         // Ambil semua jadwal beserta relasi user (karyawan) dan shift-nya
-        // with(['user', 'shift']) = eager loading supaya tidak boros query
+        // with(['user', 'shift']) = eager loading supaya tidak boros query 
         $jadwals = JadwalKerja::with(['user', 'shift'])->get();
 
         // Kirim data ke halaman daftar jadwal
@@ -32,7 +32,7 @@ class JadwalController extends Controller
         $shifts = Shift::all();
 
         // Daftar pilihan hari dalam seminggu
-        $hari = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu']; 
+        $hari = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
 
         // Kirim semua data ke form tambah jadwal
         return view('admin.jadwal.create', compact('karyawans', 'shifts', 'hari'));

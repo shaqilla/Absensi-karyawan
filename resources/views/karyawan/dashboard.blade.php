@@ -79,7 +79,6 @@
             @endif
         </div>
 
-        <!-- AKSI DINAMIS: DI SINI PERBAIKANNYA -->
         <div class="relative overflow-hidden h-full min-h-[140px]">
             @if($isAlpha || ($presensiHariIni && $presensiHariIni->status == 'alpha'))
                 <div class="bg-slate-900 p-6 md:p-8 rounded-[2rem] shadow-xl flex items-center justify-between h-full border-b-4 border-rose-600 text-white">
@@ -108,6 +107,27 @@
                     <i class="fas fa-check-double text-4xl opacity-20"></i>
                 </div>
             @endif
+        </div>
+
+        <!-- GRID STATISTIK HELPDESK (Tambahan buat Operator) -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10 text-black">
+            <div class="bg-indigo-600 p-6 rounded-[2rem] text-white shadow-xl">
+                <p class="text-[10px] font-black uppercase opacity-60 mb-1">Tiket Menunggu</p>
+                <h3 class="text-3xl font-black">{{ $ticketsOpen ?? 0 }}</h3>
+                <p class="text-[9px] mt-2 font-bold uppercase tracking-widest italic text-indigo-200">Butuh Respon Segera</p>
+            </div>
+            
+            <div class="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm">
+                <p class="text-[10px] font-black uppercase text-slate-400 mb-1">Sedang Diproses</p>
+                <h3 class="text-3xl font-black text-slate-800">{{ $ticketsInProgress ?? 0 }}</h3>
+                <p class="text-[9px] mt-2 font-bold uppercase text-indigo-500">In-Progress</p>
+            </div>
+
+            <div class="bg-slate-900 p-6 rounded-[2rem] text-white shadow-xl">
+                <p class="text-[10px] font-black uppercase opacity-60 mb-1">Total Aduan</p>
+                <h3 class="text-3xl font-black">{{ $totalTickets ?? 0 }}</h3>
+                <p class="text-[9px] mt-2 font-bold uppercase text-slate-400 italic">Kumulatif Sistem</p>
+            </div>
         </div>
     </div>
 

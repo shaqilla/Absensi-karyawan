@@ -2,10 +2,11 @@
 
 @section('content')
 <div class="w-full pb-10">
+    <!-- HEADER -->
     <div class="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
         <div class="text-center md:text-left">
             <h1 class="text-2xl md:text-3xl font-black text-gray-800 uppercase tracking-tighter">Ringkasan Hari Ini</h1>
-            <p class="text-gray-500 text-xs md:text-sm italic font-medium">Monitoring kehadiran karyawan.</p>
+            <p class="text-gray-500 text-xs md:text-sm italic font-medium">Monitoring kehadiran karyawan dan performa sistem.</p>
         </div> 
         <div class="flex justify-center">
             <span class="bg-indigo-50 text-indigo-600 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border border-indigo-100 shadow-sm">
@@ -14,7 +15,7 @@
         </div>
     </div>
 
-    <!-- GRID STATISTIK -->
+    <!-- GRID STATISTIK PRESENSI -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-10">
         <!-- Total Karyawan -->
         <div class="bg-white p-6 rounded-[2rem] shadow-sm border-b-4 border-blue-500 transition-all hover:shadow-md">
@@ -70,7 +71,7 @@
     </div>
 
     <!-- TABEL PRESENSI TERBARU -->
-    <div class="bg-white rounded-[2rem] shadow-sm border border-gray-100 overflow-hidden text-black">
+    <div class="bg-white rounded-[2rem] shadow-sm border border-gray-100 overflow-hidden text-black mb-10">
         <div class="p-6 md:p-8 border-b border-gray-50 flex justify-between items-center bg-gray-50/30">
             <div class="flex items-center">
                 <div class="w-2 h-6 bg-indigo-600 rounded-full mr-3"></div>
@@ -87,7 +88,7 @@
                         <th class="p-6 text-center">Waktu Scan</th>
                         <th class="p-6 text-center">Shift</th>
                         <th class="p-6 text-center">Status</th>
-                        <th class="p-6 text-center">Poin Total</th> {{-- KOLOM BARU --}}
+                        <th class="p-6 text-center">Poin Total</th>
                         <th class="p-6">Unit Kerja</th>
                     </tr>
                 </thead>
@@ -106,7 +107,6 @@
                             </div>
                         </td>
 
-                        {{-- FIX: JIKA ALPHA, JAM JADI --:-- --}}
                         <td class="p-6 text-center font-mono font-black text-xs">
                             @if($p->status == 'alpha')
                                 <span class="text-gray-300">--:--</span>
@@ -125,7 +125,7 @@
 
                         <td class="p-6 text-center">
                             @php
-                                $statusClasses = [
+                                $statusClasses =[
                                     'hadir' => 'bg-emerald-50 text-emerald-600 border-emerald-100',
                                     'telat' => 'bg-amber-50 text-amber-600 border-amber-100',
                                     'alpha' => 'bg-rose-100 text-rose-600 border-rose-200'
@@ -137,7 +137,6 @@
                             </span>
                         </td>
 
-                        {{-- KOLOM POIN TOTAL KARYAWAN --}}
                         <td class="p-6 text-center">
                             <div class="flex flex-col items-center">
                                 <span class="text-xs font-black text-indigo-600">{{ number_format($p->user->currentPoints(), 0, ',', '.') }}</span>
@@ -163,6 +162,94 @@
                     @endforelse
                 </tbody>
             </table>
+        </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- BAGIAN 2: PERFORMA HELPDESK & RATING (BARU)-->
+    <!-- ========================================== -->
+    <div class="flex items-center mb-6 mt-12">
+        <div class="w-2 h-6 bg-amber-500 rounded-full mr-3"></div>
+        <h2 class="font-black text-gray-800 text-sm md:text-base uppercase tracking-widest">Analitik Performa Operator (Helpdesk)</h2>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10">
+        <!-- Rata-rata Kepuasan (Rating) -->
+        <div class="bg-slate-900 p-8 rounded-[2.5rem] shadow-xl text-white relative overflow-hidden flex flex-col justify-center">
+            <i class="fas fa-star absolute -right-6 -bottom-6 text-8xl text-white/5"></i>
+            <p class="text-[10px] font-black uppercase tracking-widest text-amber-400 mb-2">Tingkat Kepuasan Pelapor</p>
+            <div class="flex items-end gap-3">
+                <h3 class="text-5xl font-black text-white">{{ number_format($avgRating ?? 0, 1) }}</h3>
+                <span class="text-sm font-bold text-slate-400 mb-1">/ 5.0</span>
+            </div>
+            <div class="flex gap-1 mt-3">
+                @php $rating = round($avgRating ?? 0); @endphp
+                @for($i=1; $i<=5; $i++)
+                    <i class="fas fa-star text-sm {{ $i <= $rating ? 'text-amber-400' : 'text-slate-700' }}"></i>
+                @endfor
+            </div>
+            <p class="text-[9px] text-slate-400 italic mt-4">*Diambil dari penilaian karyawan setelah tiket selesai.</p>
+        </div>
+
+        <!-- Tabel Performa Tiap Operator -->
+        <div class="lg:col-span-2 bg-white rounded-[2.5rem] shadow-sm border border-gray-100 overflow-hidden text-black">
+            <div class="p-6 border-b border-gray-50 flex justify-between items-center bg-gray-50/50">
+                <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Rapor Kinerja Operator</p>
+                <i class="fas fa-headset text-gray-300"></i>
+            </div>
+            <div class="overflow-x-auto w-full">
+                <table class="w-full text-left border-collapse min-w-[500px]">
+                    <thead>
+                        <tr class="text-gray-400 text-[9px] font-black uppercase tracking-widest border-b border-gray-50">
+                            <th class="p-5">Nama Operator</th>
+                            <th class="p-5 text-center">Tiket Selesai</th>
+                            <th class="p-5 text-center">Rata-rata Respon</th>
+                            <th class="p-5 text-center">Rating Kinerja</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-50">
+                        @forelse($operatorStats ??[] as $op)
+                        <tr class="hover:bg-slate-50 transition">
+                            <td class="p-5">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 text-[10px] font-black border">
+                                        <i class="fas fa-user-tie"></i>
+                                    </div>
+                                    <p class="font-black text-xs text-slate-800 uppercase">{{ $op->nama }}</p>
+                                </div>
+                            </td>
+                            <td class="p-5 text-center">
+                                <span class="bg-indigo-50 text-indigo-600 px-3 py-1.5 rounded-lg font-black text-[10px] border border-indigo-100">
+                                    {{ $op->tickets_count ?? 0 }} Tiket
+                                </span>
+                            </td>
+                            <td class="p-5 text-center">
+                                @php
+                                    $responTime = round($op->avg_response ?? 0);
+                                    // Hijau kalo di bawah 60 menit, kuning kalo lambat
+                                    $colorRespon = $responTime < 60 ? 'text-emerald-500 bg-emerald-50' : 'text-amber-500 bg-amber-50';
+                                @endphp
+                                <span class="px-3 py-1.5 rounded-lg text-[10px] font-black uppercase {{ $colorRespon }} border">
+                                    {{ $responTime }} Menit
+                                </span>
+                            </td>
+                            <td class="p-5 text-center">
+                                <div class="flex justify-center items-center gap-1.5 bg-slate-50 py-1.5 px-3 rounded-lg border border-slate-100 w-max mx-auto">
+                                    <span class="text-[11px] font-black text-slate-700">{{ number_format($op->avg_rating ?? 0, 1) }}</span>
+                                    <i class="fas fa-star text-[10px] text-amber-400 mb-0.5"></i>
+                                </div>
+                            </td>
+                        </tr>
+                        @empty
+                        <tr>
+                            <td colspan="4" class="p-10 text-center">
+                                <p class="text-[10px] font-black uppercase text-slate-400 tracking-widest">Belum ada data performa operator</p>
+                            </td>
+                        </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 </div>

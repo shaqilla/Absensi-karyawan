@@ -3,12 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Presensi;
-use App\Models\User;
-use App\Models\Karyawan;
-use App\Models\JadwalKerja;
-use App\Models\Pengajuan;
-use App\Models\PointLedger;
+use App\Models\{Presensi, User, Karyawan, JadwalKerja, Pengajuan, PointLedger, Ticket, SatisfactionRating}; // SatisfactionRating Ditambahin
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -22,12 +17,10 @@ class DashboardController extends Controller
         date_default_timezone_set('Asia/Jakarta');
         $hariIni = now()->toDateString();
         $kemarin = now()->subDay()->toDateString();
-        $waktuSekarang = now();
         $bulanIni = now()->month;
         $tahunIni = now()->year;
 
-        $hariInggris = now()->format('l');
-        $mappingHari = [
+        $mappingHari =[
             'Monday'    => 'senin',
             'Tuesday'   => 'selasa',
             'Wednesday' => 'rabu',
@@ -36,18 +29,18 @@ class DashboardController extends Controller
             'Saturday'  => 'sabtu',
             'Sunday'    => 'minggu'
         ];
-        $hariNama = $mappingHari[$hariInggris];
+        $hariNama = $mappingHari[now()->format('l')];
 
-        // --- LOGIKA PENALTI ALPA OTOMATIS (DIPROSES SAAT ADMIN LOGIN) ---
-        // (KODE INI TETAP ADA, TIDAK GUE HAPUS)
+        // --- LOGIKA PENALTI ALPA OTOMATIS ---
         if (!now()->subDay()->isSunday()) {
             $hariNamaKemarin = $mappingHari[now()->subDay()->format('l')];
             $jadwalKemarin = JadwalKerja::where('hari', $hariNamaKemarin)->where('status', 'aktif')->get();
 
             foreach ($jadwalKemarin as $jk) {
                 $absenKemarin = Presensi::where('user_id', $jk->user_id)->where('tanggal', $kemarin)->exists();
-                $izinKemarin = Pengajuan::where('user_id', $jk->user_id)->where('status_approval', 'disetujui')
-                    ->whereDate('tanggal_mulai', '<=', $kemarin)->whereDate('tanggal_selesai', '>=', $kemarin)->exists();
+                $izinKemarin = Pengajuan::where('user_id', $jk->user_id)->where('status', 'disetujui')
+                    ->whereDate('tanggal_mulai', '<=', $kemarin)
+                    ->whereDate('tanggal_selesai', '>=', $kemarin)->exists();
 
                 if (!$absenKemarin && !$izinKemarin) {
                     $sudahDihukum = PointLedger::where('user_id', $jk->user_id)
@@ -71,54 +64,90 @@ class DashboardController extends Controller
             }
         }
 
-        // 2. STATISTIK UTAMA
+        // 2. STATISTIK UTAMA (ABSENSI)
         $totalKaryawan = Karyawan::count();
+        $hadirHariIni = Presensi::where('tanggal', $hariIni)->where('status', 'hadir')->count();
+        $telatHariIni = Presensi::where('tanggal', $hariIni)->where('status', 'telat')->count();
+        $tidakHadir = Presensi::where('tanggal', $hariIni)->where('status', 'alpha')->count();
 
-        $hadirHariIni = Presensi::where('tanggal', $hariIni)
-            ->where('status', 'hadir')
-            ->count();
-
-        $telatHariIni = Presensi::where('tanggal', $hariIni)
-            ->where('status', 'telat')
-            ->count();
-
-        // Mengambil jumlah Alpha hari ini (yang ditembak otomatis oleh sistem karyawan)
-        $tidakHadir = Presensi::where('tanggal', $hariIni)
-            ->where('status', 'alpha')
-            ->count();
-
-        // 4. REKAPITULASI BULANAN (KODE INI TETAP ADA)
-        $rekapBulanan = [
+        // 3. REKAPITULASI BULANAN
+        $rekapBulanan =[
             'hadir' => Presensi::whereMonth('tanggal', $bulanIni)->whereYear('tanggal', $tahunIni)->where('status', 'hadir')->count(),
             'telat' => Presensi::whereMonth('tanggal', $bulanIni)->whereYear('tanggal', $tahunIni)->where('status', 'telat')->count(),
-            'izin'  => Pengajuan::whereMonth('tanggal_mulai', $bulanIni)->whereYear('tanggal_mulai', $tahunIni)->where('status_approval', 'disetujui')->count(),
+            'izin'  => Pengajuan::whereMonth('tanggal_mulai', $bulanIni)->whereYear('tanggal_mulai', $tahunIni)->where('status', 'disetujui')->count(),
         ];
 
-        // 5. LEADERBOARD POIN (KODE INI TETAP ADA)
+        // 4. LEADERBOARD POIN
         $topUsers = User::where('role', 'karyawan')->get()->sortByDesc(function ($u) {
             return (int)$u->currentPoints();
-        })->take(5);
+        })->values()->take(5);
 
         $bottomUsers = User::where('role', 'karyawan')->get()->sortBy(function ($u) {
             return (int)$u->currentPoints();
-        })->take(5);
+        })->values()->take(5);
 
-        // 6. TABEL AKTIVITAS TERBARU (DI SINI PERBAIKANNYA)
-        // Tambahin filter whereDate hari ini biar riwayat data kemarin ILANG.
+        // 5. TABEL AKTIVITAS TERBARU (HARI INI SAJA)
         $presensiTerbaru = Presensi::with(['user.karyawan.departemen', 'shift'])
             ->whereDate('tanggal', $hariIni)
             ->orderBy('created_at', 'desc')
             ->get();
 
+        // 6. STATISTIK HELPDESK & RATING (UDAH GUA MASUKIN KE SINI)
+        $ticketsOpen = Ticket::where('status', 'open')->count();
+        $ticketsInProgress = Ticket::where('status', 'in-progress')->count();
+        $totalTickets = Ticket::count();
+
+        // Hitung Rata-rata Semua Kepuasan
+        $avgRating = DB::table('satisfaction_ratings')->avg('score') ?? 0;
+
+        // Hitung Performa Tiap Operator
+        $operatorStats = User::whereIn('role', ['operator', 'admin'])
+            ->get()
+            ->map(function ($operator) {
+                // Tiket yang udah diselesaikan operator ini
+                $operator->tickets_count = Ticket::where('operator_id', $operator->id)
+                    ->where('status', 'closed')
+                    ->count();
+
+                // Rata-rata rating yang didapet operator ini
+                $operator->avg_rating = DB::table('satisfaction_ratings')
+                    ->join('tickets', 'satisfaction_ratings.ticket_id', '=', 'tickets.id')
+                    ->where('tickets.operator_id', $operator->id)
+                    ->avg('satisfaction_ratings.score') ?? 0;
+
+                // Rata-rata response time (SLA) dalam menit
+                $avgResponse = Ticket::where('operator_id', $operator->id)
+                    ->whereNotNull('first_response_at') 
+                    ->get()
+                    ->avg(function ($ticket) {
+                        return $ticket->created_at->diffInMinutes($ticket->first_response_at);
+                    });
+
+                $operator->avg_response = $avgResponse ?? 0;
+
+                return $operator;
+            })
+            ->filter(function ($operator) {
+                // Jangan tampilin user yang belum pernah nanganin tiket
+                return Ticket::where('operator_id', $operator->id)->count() > 0;
+            })
+            ->values();
+
+        // RETURN VIEW HANYA BOLEH 1 KALI (DI PALING BAWAH SINI)
         return view('admin.dashboard', compact(
             'totalKaryawan',
             'hadirHariIni',
             'telatHariIni',
             'tidakHadir',
+            'ticketsOpen',
+            'ticketsInProgress',
+            'totalTickets',
             'presensiTerbaru',
             'rekapBulanan',
             'topUsers',
-            'bottomUsers'
+            'bottomUsers',
+            'avgRating',        // <-- VARIABEL RATING DIKIRIM KE VIEW
+            'operatorStats'     // <-- VARIABEL OPERATOR DIKIRIM KE VIEW
         ));
     }
 

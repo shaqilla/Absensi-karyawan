@@ -90,6 +90,10 @@ class KaryawanDashboardController extends Controller
             }
         }
 
+        $ticketsOpen = \App\Models\Ticket::where('status', 'open')->count();
+        $ticketsInProgress = \App\Models\Ticket::where('status', 'in-progress')->count();
+        $totalTickets = \App\Models\Ticket::count();
+
         // 2. DATA UNTUK BLADE (LOGIKA TAMPILAN)
         $jadwalHariIni = JadwalKerja::with('shift')->where('user_id', $userId)
             ->where('hari', $mappingHari[$now->format('l')])->where('status', 'aktif')->first();
@@ -119,7 +123,7 @@ class KaryawanDashboardController extends Controller
 
         $riwayat = Presensi::where('user_id', $userId)->orderBy('tanggal', 'desc')->take(7)->get();
 
-        return view('karyawan.dashboard', compact('presensiHariIni', 'riwayat', 'jadwalHariIni', 'isAlpha', 'isWaiting', 'canScan'));
+        return view('karyawan.dashboard', compact('presensiHariIni', 'riwayat', 'jadwalHariIni', 'isAlpha', 'isWaiting', 'canScan', 'ticketsOpen', 'ticketsInProgress', 'totalTickets'));
     }
 
     public function jadwal()

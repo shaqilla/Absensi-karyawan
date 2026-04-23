@@ -38,11 +38,12 @@
                     </h2>
 
                     <div>
-                        <label class="block text-[9px] md:text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Role Akses</label>
-                        <select name="role" class="w-full border-gray-200 rounded-xl p-3 md:p-4 focus:ring-2 focus:ring-indigo-500 border outline-none font-bold text-gray-700 text-sm bg-gray-50" required>
-                            <option value="karyawan" {{ old('role') == 'karyawan' ? 'selected' : '' }}>Karyawan </option>
-                            <option value="pimpinan" {{ old('role') == 'pimpinan' ? 'selected' : '' }}>Pimpinan </option>
-                            <option value="admin" {{ old('role') == 'admin' ? 'selected' : '' }}>Admin </option>
+                        <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Role / Jabatan Sistem</label>
+                        <select name="role" class="w-full border-gray-100 rounded-2xl p-4 bg-gray-50 font-black text-indigo-600 focus:ring-4 focus:ring-indigo-500/10 outline-none transition cursor-pointer" required>
+                            <option value="karyawan">KARYAWAN </option>
+                            <option value="operator">OPERATOR </option>
+                            <option value="pimpinan">PIMPINAN </option>
+                            <option value="admin">ADMINISTRATOR </option>
                         </select>
                     </div>
 

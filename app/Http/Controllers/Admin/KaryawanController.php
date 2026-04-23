@@ -10,11 +10,15 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
 
+// [CLASS]: KaryawanController adalah sebuah Class (Blueprint/cetakan kode)
+// [INHERITANCE]: "extends Controller" artinya KaryawanController mewarisi semua fitur dari class induknya (Controller)
 class KaryawanController extends Controller
 {
     // 1. TAMPILKAN SEMUA DATA KARYAWAN
+    // METHOD: index adalah fungsi di dalam class KaryawanController yang bertugas untuk menampilkan daftar karyawan
     public function index(Request $request)
     {
+        // variable: $departemenId, $departemens, $query adalah variabel untuk menyimpan data sementara
         $departemenId = $request->departemen_id;
         $departemens = Departemen::all();
 
@@ -49,7 +53,7 @@ class KaryawanController extends Controller
             'nama'          => 'required|string|max:255',
             'email'         => 'required|email|unique:users,email',
             'password'      => 'required|min:6',
-            'role'          => 'required|in:admin,karyawan,pimpinan',
+            'role'          => 'required|in:admin,karyawan,pimpinan,operator',
             'nip'           => 'required|unique:karyawans,nip',
             'jabatan'       => 'required',
             'departemen_id' => 'required|exists:departemens,id',

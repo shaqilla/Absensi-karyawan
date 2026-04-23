@@ -20,9 +20,9 @@
 <script src="https://cdn.jsdelivr.net/gh/davidshimjs/qrcodejs@master/qrcode.min.js"></script>
 
 <script>
-    const qrContainer = document.getElementById("qrcode");
+    const qrContainer = document.getElementById("qrcode"); 
     const statusText = document.getElementById("status");
- 
+
     function fetchQR() {
         console.log("Fetching...");
         statusText.innerText = "MENGAMBIL DATA...";

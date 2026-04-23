@@ -77,6 +77,7 @@ class AbsensiController extends Controller
                                 ->orWhere('item_name', 'LIKE', '%Terlambat%');
                         })->first();
 
+                    // if else menggunakan token buat telat atau gak        
                     if ($tokenObj) {
                         $status = 'hadir';
                         $keterangan = 'Hadir (Pakai Voucher: ' . $tokenObj->item->item_name . ')';

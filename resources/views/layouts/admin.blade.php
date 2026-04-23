@@ -46,7 +46,7 @@
 
             <nav class="flex-1 p-4 space-y-2 mt-4 overflow-y-auto no-scrollbar">
 
-                {{-- UTAMA: BISA DIAKSES ADMIN & PIMPINAN --}}
+                {{-- ==================== UTAMA (Semua Role Bisa) ==================== --}}
                 <p class="px-4 text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-2 sidebar-text">Utama</p>
                 <a href="{{ route('admin.dashboard') }}"
                     class="flex items-center p-3 rounded-xl transition {{ request()->routeIs('admin.dashboard') ? 'bg-indigo-600 shadow-lg text-white' : 'text-indigo-200 hover:bg-indigo-900 hover:text-white' }}">
@@ -54,7 +54,33 @@
                     <span class="ml-3 font-bold text-sm sidebar-text uppercase">Dashboard</span>
                 </a>
 
-                {{-- MANAJEMEN: KHUSUS ADMIN SAJA --}}
+                {{-- ==================== HELPDESK SYSTEM ==================== --}}
+                @if(in_array(auth()->user()->role, ['admin', 'operator']))
+                <p class="px-4 text-[10px] font-black text-indigo-400 uppercase tracking-widest mt-6 mb-2 sidebar-text">
+                    Helpdesk System
+                </p>
+                {{-- ANTRIAN TIKET: Admin & Operator --}}
+                <a href="{{ route('operator.tickets.index') }}"
+                    class="flex items-center p-3 rounded-xl transition {{ request()->routeIs('operator.tickets.*') ? 'bg-indigo-600 text-white shadow-lg' : 'text-indigo-200 hover:bg-indigo-900' }}">
+                    <i class="fas fa-headset w-6 text-center"></i>
+                    <span class="ml-3 font-bold text-sm sidebar-text uppercase">Antrian Tiket</span>
+                    @php $openCount = \App\Models\Ticket::where('status', 'open')->count(); @endphp
+                    @if($openCount > 0)
+                        <span class="ml-auto bg-rose-500 text-white text-[9px] font-black px-2 py-0.5 rounded-full">{{ $openCount }}</span>
+                    @endif
+                </a>
+                @endif
+
+                {{-- ANALITIK PERFORMANCE: Admin & Pimpinan SAJA (Operator TIDAK BISA) --}}
+                @if(in_array(auth()->user()->role, ['admin', 'pimpinan']))
+                <a href="{{ route('admin.analytics.helpdesk') }}"
+                    class="flex items-center p-3 rounded-xl transition {{ request()->routeIs('admin.analytics.*') ? 'bg-indigo-600 text-white shadow-lg' : 'text-indigo-200 hover:bg-indigo-900' }}">
+                    <i class="fas fa-chart-pie w-6 text-center text-amber-400"></i>
+                    <span class="ml-3 font-bold text-sm sidebar-text uppercase">Analitik Performa</span>
+                </a>
+                @endif
+
+                {{-- ==================== MANAJEMEN (HANYA ADMIN) ==================== --}}
                 @if(auth()->user()->role == 'admin')
                 <p class="px-4 text-[10px] font-black text-indigo-400 uppercase tracking-widest mt-6 mb-2 sidebar-text">Manajemen</p>
                 <a href="{{ route('admin.karyawan.index') }}"
@@ -74,10 +100,10 @@
                 </a>
                 @endif
 
-                {{-- PENILAIAN --}}
+                {{-- ==================== PENILAIAN ==================== --}}
                 <p class="px-4 text-[10px] font-black text-indigo-400 uppercase tracking-widest mt-6 mb-2 sidebar-text">Penilaian</p>
 
-                {{-- Setup Soal & Kategori: Cuma Admin --}}
+                {{-- Setup Kategori & Pertanyaan: HANYA ADMIN --}}
                 @if(auth()->user()->role == 'admin')
                 <a href="{{ route('admin.assessment.categories') }}"
                     class="flex items-center p-3 rounded-xl transition {{ request()->routeIs('admin.assessment.categories*') ? 'bg-indigo-600 text-white shadow-lg' : 'text-indigo-200 hover:bg-indigo-900' }}">
@@ -92,6 +118,7 @@
                 @endif
 
                 {{-- Input Nilai & Laporan: Admin & Pimpinan BISA --}}
+                @if(in_array(auth()->user()->role, ['admin', 'pimpinan']))
                 <a href="{{ route('admin.assessment.employees') }}"
                     class="flex items-center p-3 rounded-xl transition {{ request()->routeIs('admin.assessment.employees') || request()->routeIs('admin.assessment.create') ? 'bg-indigo-600 text-white shadow-lg' : 'text-indigo-200 hover:bg-indigo-900' }}">
                     <i class="fas fa-pen-nib w-6 text-center"></i>
@@ -102,8 +129,9 @@
                     <i class="fas fa-chart-line w-6 text-center"></i>
                     <span class="ml-3 font-bold text-sm sidebar-text uppercase tracking-tighter">Laporan Penilaian</span>
                 </a>
+                @endif
 
-                {{-- DOMPET INTEGRITAS: KHUSUS ADMIN --}}
+                {{-- ==================== DOMPET INTEGRITAS (HANYA ADMIN) ==================== --}}
                 @if(auth()->user()->role == 'admin')
                 <p class="px-4 text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em] mt-6 mb-2 sidebar-text">Ekonomi Sistem</p>
                 <a href="{{ route('admin.integrity.index') }}" class="flex items-center p-3 rounded-xl transition {{ request()->routeIs('admin.integrity.*') ? 'bg-indigo-600 text-white shadow-lg' : 'text-indigo-200 hover:bg-indigo-900' }}">
@@ -112,10 +140,11 @@
                 </a>
                 @endif
 
-                {{-- OPERASIONAL --}}
+                {{-- ==================== OPERASIONAL ==================== --}}
                 <p class="px-4 text-[10px] font-black text-indigo-400 uppercase tracking-widest mt-6 mb-2 sidebar-text">Operasional</p>
 
-                {{-- Approval Izin & Laporan: Admin & Pimpinan BISA --}}
+                {{-- Approval Izin & Laporan Absensi: Admin & Pimpinan BISA --}}
+                @if(in_array(auth()->user()->role, ['admin', 'pimpinan']))
                 <a href="{{ route('admin.pengajuan.index') }}"
                     class="flex items-center p-3 rounded-xl transition {{ request()->routeIs('admin.pengajuan.*') ? 'bg-indigo-600 text-white shadow-lg' : 'text-indigo-200 hover:bg-indigo-900' }}">
                     <i class="fas fa-envelope-open-text w-6 text-center"></i>
@@ -126,8 +155,9 @@
                     <i class="fas fa-file-signature w-6 text-center"></i>
                     <span class="ml-3 font-bold text-sm sidebar-text uppercase tracking-tighter">Laporan Absensi</span>
                 </a>
+                @endif
 
-                {{-- Manual & Lokasi: KHUSUS ADMIN --}}
+                {{-- Absensi Manual & Lokasi Kantor: HANYA ADMIN --}}
                 @if(auth()->user()->role == 'admin')
                 <a href="{{ route('admin.presensi.manual') }}"
                     class="flex items-center p-3 rounded-xl transition {{ request()->routeIs('admin.presensi.manual') ? 'bg-indigo-600 text-white shadow-lg' : 'text-indigo-200 hover:bg-indigo-900' }}">
@@ -162,18 +192,27 @@
                     <button id="adminDropdownBtn" class="flex items-center space-x-2 md:space-x-4 focus:outline-none group">
                         <div class="text-right hidden sm:block">
                             <p class="text-xs font-black text-indigo-950 uppercase leading-none">{{ auth()->user()->nama }}</p>
-                            <p class="text-[9px] {{ auth()->user()->role == 'admin' ? 'text-red-500' : 'text-indigo-500' }} font-black uppercase mt-1 italic tracking-[0.2em]">
-                                {{ auth()->user()->role }}
+                            <p class="text-[9px] font-black uppercase mt-1 italic tracking-[0.2em] 
+                                @if(auth()->user()->role == 'admin') text-red-500
+                                @elseif(auth()->user()->role == 'operator') text-indigo-500
+                                @else text-emerald-500 @endif">
+                                {{ strtoupper(auth()->user()->role) }}
                             </p>
                         </div>
                         <div class="w-10 h-10 md:w-12 md:h-12 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600 border-2 border-indigo-100 group-hover:bg-indigo-600 group-hover:text-white transition-all shadow-sm">
-                            <i class="fas fa-user-{{ auth()->user()->role == 'admin' ? 'shield' : 'user-tie' }} text-lg"></i>
+                            @if(auth()->user()->role == 'admin')
+                                <i class="fas fa-shield-alt text-lg"></i>
+                            @elseif(auth()->user()->role == 'operator')
+                                <i class="fas fa-headset text-lg"></i>
+                            @else
+                                <i class="fas fa-user-tie text-lg"></i>
+                            @endif
                         </div>
                     </button>
 
                     <div id="adminDropdownMenu" class="hidden absolute right-0 mt-3 w-56 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-[999]">
                         <div class="p-4 border-b border-gray-50 bg-gray-50/50 text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                            {{ auth()->user()->role }} Account
+                            {{ strtoupper(auth()->user()->role) }} Account
                         </div>
                         <a href="{{ route('admin.profil') }}" class="flex items-center px-5 py-4 text-sm text-gray-700 hover:bg-indigo-50 border-b border-gray-50 font-bold uppercase text-[9px]">
                             <i class="fas fa-user-cog w-5 text-indigo-500"></i> Setting Profil
